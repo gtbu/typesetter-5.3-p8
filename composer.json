@@ -1,5 +1,5 @@
 {
-  "name": "gtbu/Typesetter-5.3-p8",
+  "name": "gtbu/typesetter-5.3-p8",
   "description": "Typesetter CMS 5.3-p8 – flat-file CMS for PHP 8 with Bootstrap 5.3, SCSSPHP 1.13, CKEditor 4.22, Elfinder 2.1.62, and PhpMailer 6.9.1 — no external dependencies.",
   "type": "project",
   "license": "GPL-2.0",
