@@ -407,7 +407,7 @@ class Tools{
 		<hr/>
 		<p>There are many ways to contribute to our project:</p>
 		<ul>
-		<li>Fork ' . CMS_NAME . ' on <a href="https://github.com/gtbu/Typesetter-5.3-p8" target="_blank" rel="nofollow">github</a>.</li>
+		<li>Fork ' . CMS_NAME . ' on <a href="https://github.com/gtbu/typesetter-5.3-p8" target="_blank" rel="nofollow">github</a>.</li>
 		<li>Like us on <a href="https://www.facebook.com/Typesetter.cms" target="_blank" rel="nofollow">Facebook</a>.</li>
 		<li>Follow us on <a href="https://twitter.com/TypesetterCMS" target="_blank" rel="nofollow">Twitter</a>.</li>
 		</ul>

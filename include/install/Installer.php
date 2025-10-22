@@ -814,7 +814,7 @@ class Installer{
 
 		echo '</select>';
 		echo '<div class="sm">';
-		echo '<a href="https://github.com/gtbu/Typesetter-5.3-p8/tree/main/include/languages" target="_blank">Help translate '.\CMS_NAME.'</a>';
+		echo '<a href="https://github.com/gtbu/typesetter-5.3-p8/tree/main/include/languages" target="_blank">Help translate '.\CMS_NAME.'</a>';
 		echo '</div>';
 
 		echo '</form>';

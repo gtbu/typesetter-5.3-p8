@@ -16,7 +16,7 @@ Features
 
 
 * [Typesetter Home](https://www.typesettercms.com) - now closed
-* [Typesetter 5.3 Wiki](https://github.com/gtbu/Typesetter-5.3-p8/wiki) with more detailed instructions !
+* [Typesetter 5.3 Wiki](https://github.com/gtbu/typesetter-5.3-p8/wiki) with more detailed instructions !
 
 
 ## Requirements ##
@@ -38,7 +38,7 @@ Submitting bug fixes and enhancements is easy:
 1. Log in to GitHub
 
 2. Fork the Typesetter Repository
-  * https://github.com/gtbu/Typesetter-5.3-p8
+  * https://github.com/gtbu/typesetter-5.3-p8
   
   * Click "Fork" and you'll have your very own copy of the Typesetter source code at https://github.com/{your-username}/Typesetter
 

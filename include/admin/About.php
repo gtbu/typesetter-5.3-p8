@@ -16,7 +16,7 @@ class About{
 
 
 		echo '<p>You\'re currently using version '.\gpversion.' of our free, open source and easy to use content management system.';
-		echo ' Our code is <a href="https://github.com/gtbu/Typesetter-5.3-p8">hosted on GitHub</a> ';
+		echo ' Our code is <a href="https://github.com/gtbu/typesetter-5.3-p8">hosted on GitHub</a> ';
 		echo 'and licensed under version 2 of the <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">GNU General Public License</a>. ';
 		echo '</p>';
 
@@ -35,14 +35,14 @@ class About{
 
 		echo '<i>Does '.\CMS_NAME.' Work?</i>';
 		echo '<p>Obviously the first step is to get '.\CMS_NAME.' working correctly.';
-		echo ' If it\'s not working for you and you think it\'s because of a bug, you can <a href="https://github.com/gtbu/Typesetter-5.3-p8/issues">report it</a> and we\'ll work on fixing it.';
+		echo ' If it\'s not working for you and you think it\'s because of a bug, you can <a href="https://github.com/gtbu/typesetter-5.3-p8/issues">report it</a> and we\'ll work on fixing it.';
 		echo '</p>';
 
 		echo '<i>Does '.\CMS_NAME.' Work Well?</i>';
 		echo '<p>This one is a bit more subjective, but just as important. ';
 		echo ' There are multiple ways to give us feedback. The following services allow you to rate and comment on '.\CMS_NAME.'. ';
 		echo '</p>';
-		echo '<p><a href="https://github.com/gtbu/Typesetter-5.3-p8" target="_blank">Fork on GitHub</a></p>';
+		echo '<p><a href="https://github.com/gtbu/typesetter-5.3-p8" target="_blank">Fork on GitHub</a></p>';
 		echo '<p><a href="https://www.opensourcecms.com/typesetter-cms/" target="_blank">OpensourceCMS.com</a></p>';
 
 

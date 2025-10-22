@@ -794,7 +794,7 @@ namespace gp\admin{
 				echo '<li><a href="' . CMS_DOMAIN . '/Forum">Support Forum</a></li>';
 				echo '<li><a href="' . CMS_DOMAIN . '/Services">Service Providers</a></li>';
 				echo '<li><a href="' . CMS_DOMAIN . '">Official ' . CMS_NAME . ' Site</a></li>';
-				echo '<li><a href="https://github.com/gtbu/Typesetter-5.3-p8/issues">Report A Bug</a></li>';
+				echo '<li><a href="https://github.com/gtbu/typesetter-5.3-p8/issues">Report A Bug</a></li>';
 
 				$links = ob_get_clean();
 				self::_AdminPanelLinks($in_panel, $links, 'resources', 'fa fa-globe', 'res');
