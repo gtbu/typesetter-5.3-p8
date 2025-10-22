@@ -59,7 +59,7 @@ When submitting pull requests, it is extremely helpful to isolate the changes yo
 
 ## Plugins and php8 ##
   * Many plugins <a href="https://www.typesettercms.com/Plugins" target=_blank> from the forum</a> will not function with Php 8, because deprecations of Php 7 are errors in php8. 
-  The momentary solution is to open an issue in the forum, but before look at the plugin-site under 'support', whether there is already an updated version for download and then manual installation under /addons.
+  The momentary solution is to open an issue (since Typesettercms version 5.3.2 the Symfony polyfills reduce this problem).
 
 ## Problems with updates ##
 If You have questions regarding installation please look here at the top in the WIKI.
