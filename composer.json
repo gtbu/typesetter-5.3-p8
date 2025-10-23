@@ -1,47 +1,38 @@
 {
-  "name": "gtbu/typesetter-5.3-p8",
-  "description": "Typesetter CMS 5.3-p8 – flat-file CMS for PHP 8 with Bootstrap 5.3, SCSSPHP 1.13, CKEditor 4.22, Elfinder 2.1.62, and PhpMailer 6.9.1 — no external dependencies.",
-  "type": "project",
-  "license": "GPL-2.0",
-  "version": "5.3.2",
-  "authors": [
-    {
-      "name": "gtbu",
-      "homepage": "https://github.com/gtbu"
-    },
-    {
-      "name": "g7sim",
-      "homepage": "https://github.com/g7sim"
-    }
-  ],
-  "require": {
-    "php": ">=8.0"
-  },
-  "suggest": {
-    "ext-json": "For JSON support in the CMS",
-    "ext-mbstring": "For UTF-8 safe string handling",
-    "ext-gd": "For image manipulation in Elfinder",
-    "ext-iconv": "For character set conversions"
-  },
-  "autoload": {
-    "psr-4": {
-      "Typesetter\\": "include/",
-      "gp\\": "include/"
-    },
-    "files": [
-      "include/common.php"
-    ]
-  },
-  "config": {
-    "optimize-autoloader": true,
-    "sort-packages": true
-  },
-  "scripts": {
-    "post-install-cmd": [
-      "@php -r \"echo 'Typesetter was installed successfully.\\n';\""
+    "name": "gtbu/typesetter-5.3-p8",
+    "description": "Typesetter CMS 5.3-p8 – flat-file CMS for PHP 8 with Bootstrap 5.3, SCSSPHP 1.13, CKEditor 4.22, Elfinder 2.1.62, and PhpMailer 6.9.1 — no external dependencies.",
+    "type": "project",
+    "license": "GPL-2.0",
+    "version": "5.3.2",
+    "authors": [
+        {
+            "name": "gtbu",
+            "homepage": "https://github.com/gtbu"
+        },
+        {
+            "name": "g7sim",
+            "homepage": "https://github.com/g7sim"
+        }
     ],
-    "post-update-cmd": [
-      "@php -r \"echo 'Typesetter was updated successfully.\\n';\""
-    ]
-  }
+    "require": {
+        "php": ">=8.0"
+    },
+    "suggest": {
+        "ext-json": "For JSON support in the CMS",
+        "ext-mbstring": "For UTF-8 safe string handling",
+        "ext-gd": "For image manipulation in Elfinder",
+        "ext-iconv": "For character set conversions"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"echo 'Typesetter was installed successfully.\\n';\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"echo 'Typesetter was updated successfully.\\n';\""
+        ]
+    }
 }
