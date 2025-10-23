@@ -75,7 +75,7 @@ namespace gp{
 				$this->language		= $languages[$this->lang];
 			}
 
-			$this->head			.= '<link rel="canonical" href="'.\gp\tool::GetUrl($title).'" />'."\n";
+			$this->head .= '<link rel="canonical" href="'.\gp\tool::AbsoluteUrl($title).'" />'."\n";
 		}
 
 
