@@ -122,6 +122,7 @@
 			'errServerError'       : 'Error occurred on the server side.', // from v2.1.25 added 16.6.2017
 			'errEmpty'             : 'Unable to empty folder "$1".', // from v2.1.25 added 22.6.2017
 			'moreErrors'           : 'There are $1 more errors.', // from v2.1.44 added 9.12.2018
+			'errMaxMkdirs'         : 'You can create up to $1 folders at one time.', // from v2.1.58 added 20.6.2021
 
 			/******************************* commands names ********************************/
 			'cmdarchive'   : 'Create archive',
@@ -180,6 +181,7 @@
 			'btnCancel' : 'Cancel',
 			'btnNo'     : 'No',
 			'btnYes'    : 'Yes',
+			'btnDiscard': 'Discard changes',
 			'btnMount'  : 'Mount',  // added 18.04.2012
 			'btnApprove': 'Goto $1 & approve', // from v2.1 added 26.04.2012
 			'btnUnmount': 'Unmount', // from v2.1 added 30.04.2012
@@ -449,6 +451,7 @@
 			'clearBrowserData': 'Initialize the settings saved in this browser', // from v2.1.26 added 28.6.2017
 			'toolbarPref'     : 'Toolbar settings', // from v2.1.27 added 2.8.2017
 			'charsLeft'       : '... $1 chars left.',  // from v2.1.29 added 30.8.2017
+			'linesLeft'       : '... $1 lines left.',  // from v2.1.52 added 16.1.2020
 			'sum'             : 'Sum', // from v2.1.29 added 28.9.2017
 			'roughFileSize'   : 'Rough file size', // from v2.1.30 added 2.11.2017
 			'autoFocusDialog' : 'Focus on the element of dialog with mouseover',  // from v2.1.30 added 2.11.2017
@@ -527,6 +530,12 @@
 			'kindTTF'         : 'True Type font',
 			'kindOTF'         : 'Open Type font',
 			'kindRPM'         : 'RPM package',
+			// fonts
+			'kindFont'        : 'Font',
+			'kindSFNT'        : 'SFNT font',
+			'kindEOT'         : 'Embedded Open Type font',
+			'kindWOFF'        : 'Web Open Font Format',
+			'kindWOFF2'       : 'Web Open Font Format 2',
 			// texts
 			'kindText'        : 'Text document',
 			'kindTextPlain'   : 'Plain text',

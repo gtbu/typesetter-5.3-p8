@@ -1,8 +1,8 @@
 /**
  * Slovak translation
- * @author RobiNN <kelcakrobo@gmail.com>
+ * @author RobiNN <robo@kelcak.com>
  * @author Jakub Ďuraš <jkblmr@gmail.com>
- * @version 2019-08-09
+ * @version 2021-06-10
  */
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
@@ -14,12 +14,12 @@
 	}
 }(this, function(elFinder) {
 	elFinder.prototype.i18.sk = {
-		translator : 'RobiNN &lt;kelcakrobo@gmail.com&gt;, Jakub Ďuraš &lt;jkblmr@gmail.com&gt;',
+		translator : 'RobiNN &lt;robo@kelcak.com&gt;, Jakub Ďuraš &lt;jkblmr@gmail.com&gt;',
 		language   : 'Slovenčina',
 		direction  : 'ltr',
-		dateFormat : 'd.m.Y H:i', // will show like: 09.08.2019 14:11
-		fancyDateFormat : '$1 H:i', // will show like: Dnes 14:11
-		nonameDateFormat : 'ymd-His', // noname upload will show like: 190809-141149
+		dateFormat : 'd.m.Y H:i', // will show like: 10.06.2021 23:35
+		fancyDateFormat : '$1 H:i', // will show like: Dnes 23:35
+		nonameDateFormat : 'ymd-His', // noname upload will show like: 210610-233522
 		messages   : {
 
 			/********************************** errors **********************************/
@@ -116,6 +116,7 @@
 			'errServerError'       : 'Vyskytla sa chyba na strane servera.', // from v2.1.25 added 16.6.2017
 			'errEmpty'             : 'Nepodarilo sa vyprázdniť priečinok "$1".', // from v2.1.25 added 22.6.2017
 			'moreErrors'           : 'Existujú ešte ďalšie $1 chyby.', // from v2.1.44 added 9.12.2018
+			'errMaxMkdirs'         : 'Môžete vytvoriť až $1 priečinkov naraz.', // from v2.1.58 added 20.6.2021
 
 			/******************************* commands names ********************************/
 			'cmdarchive'   : 'Vytvoriť archív',
@@ -174,6 +175,7 @@
 			'btnCancel' : 'Zrušiť',
 			'btnNo'     : 'Nie',
 			'btnYes'    : 'Áno',
+			'btnDiscard': 'Discard changes',
 			'btnMount'  : 'Pripojiť',  // added 18.04.2012
 			'btnApprove': 'Ísť na $1 & schváliť', // from v2.1 added 26.04.2012
 			'btnUnmount': 'Odpojiť', // from v2.1 added 30.04.2012
@@ -443,6 +445,7 @@
 			'clearBrowserData': 'Inicializujte nastavenia uložené v tomto prehliadači', // from v2.1.26 added 28.6.2017
 			'toolbarPref'     : 'Nastavenie panela s nástrojmi', // from v2.1.27 added 2.8.2017
 			'charsLeft'       : '...$1 znakov ostáva.',  // from v2.1.29 added 30.8.2017
+			'linesLeft'       : '...$1 riadkov ostáva.',  // from v2.1.52 added 16.1.2020
 			'sum'             : 'Súčet', // from v2.1.29 added 28.9.2017
 			'roughFileSize'   : 'Hrubá veľkosť súboru', // from v2.1.30 added 2.11.2017
 			'autoFocusDialog' : 'Zameranie na prvok dialógu s mouseover',  // from v2.1.30 added 2.11.2017
@@ -521,6 +524,12 @@
 			'kindTTF'         : 'True Type font',
 			'kindOTF'         : 'Open Type font',
 			'kindRPM'         : 'RPM balík',
+			// fonts
+			'kindFont'        : 'Font',
+			'kindSFNT'        : 'SFNT font',
+			'kindEOT'         : 'Embedded Open Type font',
+			'kindWOFF'        : 'Web Open Font Format',
+			'kindWOFF2'       : 'Web Open Font Format 2',
 			// texts
 			'kindText'        : 'Textový document',
 			'kindTextPlain'   : 'Obyčajný text',

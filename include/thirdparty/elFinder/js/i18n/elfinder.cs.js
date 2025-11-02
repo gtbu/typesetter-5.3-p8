@@ -1,8 +1,8 @@
 /**
  * Czech translation
- * @author RobiNN <kelcakrobo@gmail.com>
+ * @author RobiNN <robo@kelcak.com>
  * @author Jay Gridley <gridley.jay@hotmail.com>
- * @version 2019-08-09
+ * @version 2021-06-10
  */
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
@@ -14,12 +14,12 @@
 	}
 }(this, function(elFinder) {
 	elFinder.prototype.i18.cs = {
-		translator : 'RobiNN &lt;kelcakrobo@gmail.com&gt;, Jay Gridley &lt;gridley.jay@hotmail.com&gt;',
+		translator : 'RobiNN &lt;robo@kelcak.com&gt;, Jay Gridley &lt;gridley.jay@hotmail.com&gt;',
 		language   : 'Čeština',
 		direction  : 'ltr',
-		dateFormat : 'd. m. Y H:i', // will show like: 09. 08. 2019 14:18
-		fancyDateFormat : '$1 H:i', // will show like: Dnes 14:18
-		nonameDateFormat : 'ymd-His', // noname upload will show like: 190809-141840
+		dateFormat : 'd. m. Y H:i', // will show like: 10. 06. 2021 23:37
+		fancyDateFormat : '$1 H:i', // will show like: Dnes 23:37
+		nonameDateFormat : 'ymd-His', // noname upload will show like: 210610-233701
 		messages   : {
 
 			/********************************** errors **********************************/
@@ -116,6 +116,7 @@
 			'errServerError'       : 'Došlo k chybě na straně serveru.', // from v2.1.25 added 16.6.2017
 			'errEmpty'             : 'Nelze vyprázdnit složku "$1".', // from v2.1.25 added 22.6.2017
 			'moreErrors'           : 'Existují ještě další $1 chyby.', // from v2.1.44 added 9.12.2018
+			'errMaxMkdirs'         : 'Můžete vytvořit až $1 složek najednou.', // from v2.1.58 added 20.6.2021
 
 			/******************************* commands names ********************************/
 			'cmdarchive'   : 'Vytvořit archív',
@@ -174,6 +175,7 @@
 			'btnCancel' : 'Zrušit',
 			'btnNo'     : 'Ne',
 			'btnYes'    : 'Ano',
+			'btnDiscard': 'Discard changes',
 			'btnMount'  : 'Připojit',  // added 18.04.2012
 			'btnApprove': 'Přejít do části 1 $ & schválit', // from v2.1 added 26.04.2012
 			'btnUnmount': 'Odpojit', // from v2.1 added 30.04.2012
@@ -443,6 +445,7 @@
 			'clearBrowserData': 'Inicializujte nastavení uložená v tomto prohlížeči', // from v2.1.26 added 28.6.2017
 			'toolbarPref'     : 'Nastavení panelu nástrojů', // from v2.1.27 added 2.8.2017
 			'charsLeft'       : '...$1 znaků zbývá.',  // from v2.1.29 added 30.8.2017
+			'linesLeft'       : '...$1 řádků zůstává.',  // from v2.1.52 added 16.1.2020
 			'sum'             : 'Součet', // from v2.1.29 added 28.9.2017
 			'roughFileSize'   : 'Hrubá velikost souboru', // from v2.1.30 added 2.11.2017
 			'autoFocusDialog' : 'Zaměření na prvek dialogu s mouseover',  // from v2.1.30 added 2.11.2017
@@ -521,6 +524,12 @@
 			'kindTTF'         : 'True Type font',
 			'kindOTF'         : 'Open Type font',
 			'kindRPM'         : 'RPM balíček',
+			// fonts
+			'kindFont'        : 'Font',
+			'kindSFNT'        : 'SFNT font',
+			'kindEOT'         : 'Embedded Open Type font',
+			'kindWOFF'        : 'Web Open Font Format',
+			'kindWOFF2'       : 'Web Open Font Format 2',
 			// texts
 			'kindText'        : 'Textový dokument',
 			'kindTextPlain'   : 'Čistý text',

@@ -3,7 +3,8 @@
  * @author Dmitry "dio" Levashov <dio@std42.ru>
  * @author Andrew Berezovsky <andrew.berezovsky@gmail.com>
  * @author Alex Yashkin <alex@yashkin.by>
- * @version 2019-03-06
+ * @author Aleev Ruslan <info@cat-art.ru>
+ * @version 2024-11-05
  */
 (function(root, factory) {
 	if (typeof define === 'function' && define.amd) {
@@ -15,12 +16,12 @@
 	}
 }(this, function(elFinder) {
 	elFinder.prototype.i18.ru = {
-		translator : 'Dmitry "dio" Levashov &lt;dio@std42.ru&gt;, Andrew Berezovsky &lt;andrew.berezovsky@gmail.com&gt;, Alex Yashkin &lt;alex@yashkin.by&gt;',
+		translator : 'Dmitry "dio" Levashov &lt;dio@std42.ru&gt;, Andrew Berezovsky &lt;andrew.berezovsky@gmail.com&gt;, Alex Yashkin &lt;alex@yashkin.by&gt;, Aleev Ruslan &lt;info@cat-art.ru&gt;',
 		language   : 'Русский язык',
 		direction  : 'ltr',
-		dateFormat : 'd M Y H:i', // will show like: 06 Мар 2019 16:56
-		fancyDateFormat : '$1 H:i', // will show like: Сегодня 16:56
-		nonameDateFormat : 'ymd-His', // noname upload will show like: 190306-165630
+		dateFormat : 'd M Y H:i', // will show like: 05 Ноя 2024 21:08
+		fancyDateFormat : '$1 H:i', // will show like: Сегодня 21:08
+		nonameDateFormat : 'ymd-His', // noname upload will show like: 241105-210850
 		messages   : {
 
 			/********************************** errors **********************************/
@@ -117,6 +118,7 @@
 			'errServerError'       : 'Возникла ошибка на стороне сервера.', // from v2.1.25 added 16.6.2017
 			'errEmpty'             : 'Невозможно очистить папку "$1".', // from v2.1.25 added 22.6.2017
 			'moreErrors'           : 'Еще ошибок: $1', // from v2.1.44 added 9.12.2018
+			'errMaxMkdirs'         : 'Вы можете создать за один раз папок: $1.', // from v2.1.58 added 20.6.2021
 
 			/******************************* commands names ********************************/
 			'cmdarchive'   : 'Создать архив',
@@ -160,7 +162,7 @@
 			'cmdempty'     : 'Очистить папку', // from v2.1.25 added 22.06.2017
 			'cmdundo'      : 'Отменить', // from v2.1.27 added 31.07.2017
 			'cmdredo'      : 'Вернуть', // from v2.1.27 added 31.07.2017
-			'cmdpreference': 'Предпочтения', // from v2.1.27 added 03.08.2017
+			'cmdpreference': 'Настройки', // from v2.1.27 added 03.08.2017
 			'cmdselectall' : 'Выбрать все', // from v2.1.28 added 15.08.2017
 			'cmdselectnone': 'Отменить выбор', // from v2.1.28 added 15.08.2017
 			'cmdselectinvert': 'Инвертировать выбор', // from v2.1.28 added 15.08.2017
@@ -175,6 +177,7 @@
 			'btnCancel' : 'Отмена',
 			'btnNo'     : 'Нет',
 			'btnYes'    : 'Да',
+			'btnDiscard': 'Discard changes',
 			'btnMount'  : 'Подключить',  // added 18.04.2012
 			'btnApprove': 'Перейти в $1 и применить', // from v2.1 added 26.04.2012
 			'btnUnmount': 'Отключить', // from v2.1 added 30.04.2012
@@ -304,6 +307,7 @@
 			'confirmNonUTF8'  : 'Невозможно определить кодировку файла. Необходима предварительная конвертация файла в UTF-8 для дальнейшего редактирования.<br/>Выберите кодировку файла.', // from v2.1.19 added 28.11.2016
 			'confirmNotSave'  : 'Произошли изменения.<br/>Если не сохраните изменения, то потеряете их.', // from v2.1 added 15.7.2015
 			'confirmTrash'    : 'Вы уверены, что хотите переместить файлы в корзину?', //from v2.1.24 added 29.4.2017
+			'confirmMove'     : 'Вы уверены, что хотите переместить файлы в "$1"?', //from v2.1.50 added 27.7.2019
 			'apllyAll'        : 'Применить для всех',
 			'name'            : 'Имя',
 			'size'            : 'Размер',
@@ -438,11 +442,12 @@
 			'TextArea'        : 'Текстовая область', // from v2.1.25 added 14.6.2017
 			'folderToEmpty'   : 'Очистить папку "$1".', // from v2.1.25 added 22.6.2017
 			'filderIsEmpty'   : 'Нет файлов в паке "$1".', // from v2.1.25 added 22.6.2017
-			'preference'      : 'Настройки', // from v2.1.26 added 28.6.2017
+			'preference'      : 'Настройка', // from v2.1.26 added 28.6.2017
 			'language'        : 'Язык', // from v2.1.26 added 28.6.2017
 			'clearBrowserData': 'Сбросить настройки для этого браузера', // from v2.1.26 added 28.6.2017
 			'toolbarPref'     : 'Настройки панели', // from v2.1.27 added 2.8.2017
 			'charsLeft'       : '... еще символов: $1.',  // from v2.1.29 added 30.8.2017
+			'linesLeft'       : '... еще строк: $1.',  // from v2.1.52 added 16.1.2020
 			'sum'             : 'Общий размер', // from v2.1.29 added 28.9.2017
 			'roughFileSize'   : 'Приблизительный размер файла', // from v2.1.30 added 2.11.2017
 			'autoFocusDialog' : 'Фокус на элементе диалога при наведении мыши',  // from v2.1.30 added 2.11.2017
@@ -521,6 +526,12 @@
 			'kindTTF'         : 'Шрифт True Type',
 			'kindOTF'         : 'Шрифт Open Type',
 			'kindRPM'         : 'Пакет RPM',
+			// fonts
+			'kindFont'        : 'Шрифт',
+			'kindSFNT'        : 'Шрифт SFNT',
+			'kindEOT'         : 'Шрифт Embedded Open Type',
+			'kindWOFF'        : 'Шрифт Web Open Font Format',
+			'kindWOFF2'       : 'Шрифт Web Open Font Format 2',
 			// texts
 			'kindText'        : 'Текстовый документ',
 			'kindTextPlain'   : 'Простой текст',
