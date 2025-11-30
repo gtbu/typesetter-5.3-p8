@@ -640,6 +640,8 @@ namespace gp\tool{
 							'scayt_autoStartup'			=> false,
 							'disableNativeSpellChecker'	=> false,
 							'FillEmptyBlocks'			=> false,
+							'entities'                  => false,
+                            'forcePasteAsPlainText'     => true,
 							'autoParagraph'				=> false,
 							'versionCheck'              => false,
 							'extraAllowedContent'		=> 'i[*],iframe[align,frameborder,height,longdesc,marginheight,marginwidth,name,sandbox,scrolling,seamless,src,srcdoc,width];script[async,charset,defer,src,type,xml]; *[accesskey,contenteditable,contextmenu,dir,draggable,dropzone,hidden,id,lang,spellcheck,style,tabindex,title,translate](*)',
