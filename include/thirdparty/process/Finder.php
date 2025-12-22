@@ -30,7 +30,6 @@ class Finder
     
     /**
      * @var int Process timeout in seconds.
-     * Non-nullable to ensure the process always has a limit.
      */
     private int $timeout;
 
@@ -50,7 +49,6 @@ class Finder
         $this->timeout = $timeout;
 
         // SECURITY: Default to the current directory if none specified.
-        // We resolve this immediately to ensure the object is always in a valid state.
         $this->setRootDirectory($rootDirectory ?? getcwd());
     }
     
@@ -60,14 +58,14 @@ class Finder
         if ($realPath === false || !is_dir($realPath)) {
             throw new \InvalidArgumentException("Root directory does not exist: $path");
         }
-        $this->rootDirectory = $realPath;
+        // Trim trailing slash for consistent comparison later
+        $this->rootDirectory = rtrim($realPath, DIRECTORY_SEPARATOR);
         return $this;
     }
 
     public function setFinder(string $finder): self
     {
         // STRICT SECURITY: Only allow 'find' or 'finder'.
-        // This prevents executing arbitrary system binaries.
         $allowed = ['find', 'finder'];
 
         if (!in_array($finder, $allowed)) {
@@ -95,21 +93,23 @@ class Finder
     /**
      * Internal security check to prevent Path Traversal.
      * Returns the absolute path if valid, or NULL if the directory doesn't exist.
-     * Throws Exception if path exists but is outside the root.
      */
     private function resolveSafePath(string $path): ?string
     {
-        // 1. Resolve absolute path (handles ../../)
         $realPath = realpath($path);
 
-        // 2. Graceful Fail: If directory doesn't exist, we can't search it.
-        // Returning null allows the caller to return [] instead of crashing.
         if ($realPath === false) {
              return null;
         }
 
-        // 3. SECURITY: Check if the resolved path starts with the Root Directory
-        if (!str_starts_with($realPath, $this->rootDirectory)) {
+        // SECURITY FIX: Prevent partial matching (e.g. /var/www vs /var/www-secret)
+        $root = $this->rootDirectory;
+        
+        // Check if it is the root OR if it starts with "root/"
+        // PHP 8.0+ native function
+        $isInside = ($realPath === $root) || str_starts_with($realPath, $root . DIRECTORY_SEPARATOR);
+
+        if (!$isInside) {
             throw new \RuntimeException("Access Denied: Cannot search outside the allowed root directory.");
         }
 
@@ -119,26 +119,20 @@ class Finder
     public function getFindCommand(string $path, string $fileName): array
     {
         // SECURITY: Ensure filename is just a name, not a path.
-        // This prevents commands like: find /var/www -name ../../etc/passwd
         $cleanFileName = basename($fileName);
 
-        // Use $this->finder so setFinder() works
         return [$this->finder, $path, '-name', $cleanFileName];
     }
 
     public function findFile(string $file, string $searchPath = '.', bool $info = true): array
     {
-        // 1. Validate Path
         $safeSearchPath = $this->resolveSafePath($searchPath);
 
-        // If directory is missing, return empty result immediately
         if ($safeSearchPath === null) {
             return [];
         }
 
-        // 2. Sanitize Filename
         $fileBaseName = basename($file);
-
         $commandArgs = $this->getFindCommand($safeSearchPath, $fileBaseName);
 
         $process = new Process($commandArgs);
@@ -166,10 +160,10 @@ class Finder
             return [];
         }
         
-        // Extract just the folder name we are looking for
         $directoryName = basename($path);
 
-        $commandArgs = $this->getFindCommand($safeSearchPath, $directoryName);
+        // PERFORMANCE: Add '-type d' to only search for directories
+        $commandArgs = [$this->finder, $safeSearchPath, '-type', 'd', '-name', $directoryName];
         
         $process = new Process($commandArgs);
         $process->setTimeout($this->timeout);
@@ -182,10 +176,10 @@ class Finder
         $allResults = $this->listResult($process->getOutput());
 
         // Filter results: Ensure the path ends with the requested structure.
-        // Example: search "foo/bar" -> find -name "bar" -> returns "/root/foo/bar" -> str_ends_with match.
         $filteredResults = array_filter($allResults, function($resultLine) use ($path) {
             $resultLine = rtrim($resultLine, '/');
             $path = rtrim($path, '/');
+            // PHP 8.0+ native function
             return str_ends_with($resultLine, $path);
         });
 
@@ -201,8 +195,6 @@ class Finder
     public function makeData(array $files): array
     {
         $data = [];
-        
-        // Initialize Finfo once for performance
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
 
         foreach ($files as $filePath) {
@@ -211,8 +203,8 @@ class Finder
             }
 
             $fileInfo = new \SplFileInfo($filePath);
-
             $mimeType = $finfo->file($filePath);
+            
             if ($mimeType === false) {
                 $mimeType = 'unknown';
             }
