@@ -39,12 +39,19 @@ class Finder
         $this->validateTimeout($timeout);
         $this->timeout = $timeout;
     }
-
-    public function setFinder(string $finder): self
+	
+	public function setFinder(string $finder): self
     {
+        // STRICT SECURITY: Only allow 'find' or 'finder'. 
+        $allowed = ['find', 'finder'];
+
+        if (!in_array($finder, $allowed)) {
+           throw new \InvalidArgumentException("Security Error: The finder type '$finder' is not allowed.");
+        }
+
         $this->finder = $finder;
         return $this;
-    }
+    }	
     
     /**
      * Update the timeout after instantiation.
