@@ -71,8 +71,6 @@ class Less_Parser {
 	private $saveStack = [];
 	/** @var int */
 	private $furthest;
-	/** @var string for remember exists value of mbstring.internal_encoding */
-	private $mb_internal_encoding = '';
 
 	/** @var bool */
 	private $autoCommentAbsorb = true;
@@ -120,13 +118,6 @@ class Less_Parser {
 			$this->Reset( $env );
 		}
 
-		// mbstring.func_overload > 1 bugfix
-		// The encoding value must be set for each source file,
-		// therefore, to conserve resources and improve the speed of this design is taken here
-		if ( ini_get( 'mbstring.func_overload' ) ) {
-			$this->mb_internal_encoding = ini_get( 'mbstring.internal_encoding' );
-			@ini_set( 'mbstring.internal_encoding', 'ascii' );
-		}
 		Less_Tree::$parse = $this;
 	}
 
@@ -272,13 +263,6 @@ class Less_Parser {
 		// reset php settings
 		@ini_set( 'precision', $precision );
 		setlocale( LC_NUMERIC, $locale );
-
-		// If you previously defined $this->mb_internal_encoding
-		// is required to return the encoding as it was before
-		if ( $this->mb_internal_encoding != '' ) {
-			@ini_set( "mbstring.internal_encoding", $this->mb_internal_encoding );
-			$this->mb_internal_encoding = '';
-		}
 
 		// Rethrow exception after we handled resetting the environment
 		if ( !empty( $exc ) ) {
@@ -733,17 +717,17 @@ class Less_Parser {
 
 	private function cacheFile( $file_path ) {
 		if ( $file_path && $this->CacheEnabled() ) {
-
 			$env = get_object_vars( $this->env );
 			unset( $env['frames'] );
 
-			$parts = [];
-			$parts[] = $file_path;
-			$parts[] = filesize( $file_path );
-			$parts[] = filemtime( $file_path );
-			$parts[] = $env;
-			$parts[] = Less_Version::cache_version;
-			$parts[] = self::$options['cache_method'];
+			$parts = [
+				$file_path,
+				filesize( $file_path ),
+				filemtime( $file_path ),
+				$env,
+				Less_Version::cache_version,
+				self::$options['cache_method'],
+			];
 			return self::$options['cache_dir'] . Less_Cache::$prefix . base_convert( sha1( json_encode( $parts ) ), 16, 36 ) . '.lesscache';
 		}
 	}
@@ -1570,14 +1554,18 @@ class Less_Parser {
 	 * `rgb` and `hsl` colors are parsed through the `entities.call` parser.
 	 *
 	 * @return Less_Tree_Color|null
+	 * @see less-3.13.1.js#parsers.entities.color
 	 */
 	private function parseEntitiesColor() {
+		$this->save();
 		if ( $this->peekChar( '#' ) ) {
-			$rgb = $this->matchReg( '/\\G#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})/' );
-			if ( $rgb ) {
-				return new Less_Tree_Color( $rgb[1], 1, $rgb[0] );
+			$rgb = $this->matchReg( '/\\G#([A-Fa-f0-9]{8}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{3,4})([\w.#\[])?/' );
+			if ( $rgb && !isset( $rgb[2] ) ) {
+				$this->forget();
+				return new Less_Tree_Color( $rgb[1], null, $rgb[0] );
 			}
 		}
+		$this->restore();
 	}
 
 	/**
@@ -1586,21 +1574,24 @@ class Less_Parser {
 	 *	 0.5em 95%
 	 *
 	 * @return Less_Tree_Dimension|null
+	 * @see less-3.13.1.js#parsers.entities.dimension
 	 */
 	private function parseEntitiesDimension() {
-		$c = @ord( $this->input[$this->pos] ?? '' );
-
+		// Optimization: Inlined version of Less.js parserInput.peekNotNumeric
+		static $CHARCODE_COMMA = 44;
+		static $CHARCODE_FORWARD_SLASH = 47;
+		static $CHARCODE_PLUS = 43;
+		static $CHARCODE_9 = 57;
+		$c = isset( $this->input[$this->pos] ) ? ord( $this->input[$this->pos] ) : 0;
 		// Is the first char of the dimension 0-9, '.', '+' or '-'
-		if ( ( $c > 57 || $c < 43 ) || $c === 47 || $c == 44 ) {
+		$peekNotNumeric = ( $c > $CHARCODE_9 || $c < $CHARCODE_PLUS ) || $c === $CHARCODE_FORWARD_SLASH || $c === $CHARCODE_COMMA;
+
+		if ( $peekNotNumeric ) {
 			return;
 		}
-
-		$value = $this->matchReg( '/\\G([+-]?\d*\.?\d+)(%|[a-z]+)?/i' );
+		$value = $this->matchReg( '/\\G([+-]?\d*\.?\d+)(%|[a-z_]+)?/i' );
 		if ( $value ) {
-			if ( isset( $value[2] ) ) {
-				return new Less_Tree_Dimension( $value[1], $value[2] );
-			}
-			return new Less_Tree_Dimension( $value[1] );
+			return new Less_Tree_Dimension( $value[1], $value[2] ?? null );
 		}
 	}
 
@@ -1862,6 +1853,7 @@ class Less_Parser {
 
 	/**
 	 * @param bool $isCall
+	 * @return array{args:array<array{name?:string,value?:mixed,variadic?:bool}>,variadic:bool}
 	 * @see less-2.5.3.js#parsers.mixin.args
 	 */
 	private function parseMixinArgs( $isCall ) {
@@ -2495,7 +2487,7 @@ class Less_Parser {
 				// Custom property values get permissive parsing
 				if ( is_array( $name ) && array_key_exists( 0, $name ) // to satisfy phan
 					&& $name[0] instanceof Less_Tree_Keyword
-					&& $name[0]->value && strpos( $name[0]->value, '--' ) === 0 ) {
+					&& $name[0]->value && str_starts_with( $name[0]->value, '--' ) ) {
 					$value = $this->parsePermissiveValue( [ ';', '}' ] );
 				} else {
 					// Try to store values as anonymous
@@ -3354,7 +3346,7 @@ class Less_Parser {
 			if ( strval( $value ) === "" ) {
 				$value = '~""';
 			}
-			$s .= ( ( $name[0] === '@' ) ? '' : '@' ) . $name . ': ' . $value . ( ( substr( $value, -1 ) === ';' ) ? '' : ';' );
+			$s .= ( str_starts_with( $name, '@' ) ? '' : '@' ) . $name . ': ' . $value . ( str_ends_with( $value, ';' ) ? '' : ';' );
 		}
 
 		return $s;
@@ -3389,7 +3381,7 @@ class Less_Parser {
 	}
 
 	public static function AbsPath( $path, $winPath = false ) {
-		if ( strpos( $path, '//' ) !== false && preg_match( '/^(https?:)?\/\//i', $path ) ) {
+		if ( str_contains( $path, '//' ) && preg_match( '/^(https?:)?\/\//i', $path ) ) {
 			return $winPath ? '' : false;
 		} else {
 			$path = realpath( $path );
