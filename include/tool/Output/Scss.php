@@ -2,103 +2,124 @@
 
 namespace gp\tool\Output;
 
-class Scss extends \ScssPhp\ScssPhp\Compiler{
+use ScssPhp\ScssPhp\Compiler as ScssCompiler;
+use ScssPhp\ScssPhp\Type;
 
-	public $url_root = '';
+class Scss {
+    private ScssCompiler $compiler;
+    public $url_root = '';
 
+    public function __construct(array $options = []) {
+        $this->compiler = new ScssCompiler($options);
+    }
 
-	/**
-	 * Extend compileValue() so we can fix background:url(path)
-	 *
-	 */
-    public function compileValue($value , $quote = true){
+    /**
+     * Intercept compileValue() to fix background:url(path)
+     */
+    public function compileValue($value, $quote = true) {
+        if (!is_array($value) || $value[0] != Type::T_FUNCTION || strtolower($value[1]) != 'url') {
+            return $this->compiler->compileValue($value, $quote);
+        }
 
+        $arg = !empty($value[2]) ? $this->compileValue($value[2]) : '';
+        $arg = trim($arg);
 
-        if( !is_array($value) || $value[0] != \ScssPhp\ScssPhp\Type::T_FUNCTION || strtolower($value[1]) != 'url' ){
-			return parent::compileValue($value);
-		}
+        if (empty($arg)) {
+            return "{$value[1]}($arg)";
+        }
 
+        $arg = $this->FixRelative($arg);
 
-		$arg	= !empty($value[2]) ? $this->compileValue($value[2]) : '';
-		$arg	= trim($arg);
+        return "{$value[1]}($arg)";
+    }
 
-		if( empty($arg) ){
-			return "$value[1]($arg)";
-		}
+    /**
+     * Fix a relative path
+     */
+    public function FixRelative($path) {
+        $quote = '';
+        if ($path[0] == '"') {
+            $quote = '"';
+            $path = trim($path, '"');
+        } elseif ($path[0] == "'") {
+            $quote = "'";
+            $path = trim($path, "'");
+        }
 
-		$arg	= $this->FixRelative($arg);
+        if (self::isPathRelative($path)) {
+            $path = $this->url_root . '/' . $path;
+            $path = self::normalizePath($path);
+        }
 
-		return "$value[1]($arg)";
-	}
+        return $quote . $path . $quote;
+    }
 
-	/**
-	 * Fix a relative path
-	 *
-	 */
-	public function FixRelative($path){
+    public static function isPathRelative($path) {
+        return !preg_match('/^(?:[a-z-]+:|\/)/', $path);
+    }
 
-		$quote	= '';
-		if( $path[0] == '"' ){
-			$quote	= '"';
-			$path	= trim($path,'"');
-		}elseif( $path[0] == "'" ){
-			$quote	= "'";
-			$path	= trim($path,"'");
-		}
+    /**
+     * Canonicalize a path by resolving references to '/./', '/../'
+     * Does not remove leading "../"
+     * @param string path or url
+     * @return string Canonicalized path
+     */
+    public static function normalizePath($path) {
+        $segments = explode('/', $path);
+        $segments = array_reverse($segments);
 
-		if( self::isPathRelative($path) ){
-			$path = $this->url_root.'/'.$path;
-			$path = self::normalizePath($path);
-		}
+        $path = array();
+        $path_len = 0;
 
-		return $quote.$path.$quote;
-	}
+        while ($segments) {
+            $segment = array_pop($segments);
+            switch ($segment) {
+                case '.':
+                    break;
 
-	public static function isPathRelative($path){
-		return !preg_match('/^(?:[a-z-]+:|\/)/',$path);
-	}
+                case '..':
+                    if (!$path_len || ($path[$path_len - 1] === '..')) {
+                        $path[] = $segment;
+                        $path_len++;
+                    } else {
+                        array_pop($path);
+                        $path_len--;
+                    }
+                    break;
 
+                default:
+                    $path[] = $segment;
+                    $path_len++;
+                    break;
+            }
+        }
 
-	/**
-	 * Canonicalize a path by resolving references to '/./', '/../'
-	 * Does not remove leading "../"
-	 * @param string path or url
-	 * @return string Canonicalized path
-	 *
-	 */
-	public static function normalizePath($path){
+        return implode('/', $path);
+    }
 
-		$segments = explode('/',$path);
-		$segments = array_reverse($segments);
+    // Essential delegations - add more as needed
+    public function compile(string $source): string {
+        return $this->compiler->compile($source);
+    }
 
-		$path = array();
-		$path_len = 0;
+    public function setImportPaths(array $paths): void {
+        $this->compiler->setImportPaths($paths);
+    }
 
-		while( $segments ){
-			$segment = array_pop($segments);
-			switch( $segment ) {
+    public function addImportPath(string $path): void {
+        $this->compiler->addImportPath($path);
+    }
 
-				case '.':
-				break;
+    public function setNumberPrecision(int $numberPrecision): void {
+        $this->compiler->setNumberPrecision($numberPrecision);
+    }
 
-				case '..':
-					if( !$path_len || ( $path[$path_len-1] === '..') ){
-						$path[] = $segment;
-						$path_len++;
-					}else{
-						array_pop($path);
-						$path_len--;
-					}
-				break;
-
-				default:
-					$path[] = $segment;
-					$path_len++;
-				break;
-			}
-		}
-
-		return implode('/',$path);
-	}
-
+    // Forward any other Compiler methods you use to $this->compiler
+    public function __call($method, $args) {
+        if (method_exists($this->compiler, $method)) {
+            return $this->compiler->$method(...$args);
+        }
+        throw new \BadMethodCallException("Method $method does not exist");
+    }
+	
 }
