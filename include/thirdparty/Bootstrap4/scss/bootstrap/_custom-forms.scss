@@ -333,10 +333,15 @@
     background-color: $custom-file-disabled-bg;
   }
 
-  @each $lang, $value in $custom-file-text {
-    &:lang(#{$lang}) ~ .custom-file-label::after {
+   @each $lang, $value in $custom-file-text {
+  &:lang(#{$lang}) ~ .custom-file-label::after {
+    // Fix for ScssPhp 2.x: If $value is a map, extract the text using the key
+    @if type-of($value) == 'map' {
+      content: map-get($value, $lang);
+    } @else {
       content: $value;
     }
+   }
   }
 
   ~ .custom-file-label[data-browse]::after {

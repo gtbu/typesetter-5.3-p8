@@ -200,7 +200,7 @@
   @include vp-align-items(center);
   // justify-content: flex-end; // Right align buttons with flex property because text-align doesn't work on flex items
   @include vp-justify-content(flex-end);
-  padding: ($modal-inner-padding) - $modal-footer-margin-between / 2;
+  padding: calc(#{$modal-inner-padding} - #{$modal-footer-margin-between / 2});
   border-top: $modal-footer-border-width solid $modal-footer-border-color;
   @include border-bottom-radius($modal-content-inner-border-radius);
 
