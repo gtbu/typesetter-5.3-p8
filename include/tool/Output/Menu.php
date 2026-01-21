@@ -992,5 +992,24 @@ class Menu{
 
 
 	public function PrepMenuOutput(){}
+	
+	/**
+    * A vertical menu with variable depth. 
+    * Call: gpOutput::Get('CustomMenu',0,3,0,1);
+    * @param int $depth The number of levels (1-4)
+    */
+   public static function VerticalMenu($depth = 1){
+    global $GP_MENU_CLASS, $GP_MENU_CLASSES;
+    $GP_MENU_CLASS = 'vertical_menu';
+    $GP_MENU_CLASSES = array(
+        'menu_top'    => 'vertical_menu',
+        'selected_li' => 'active',
+        'child_ul'    => 'vertical_submenu',
+    );
+
+    // Wrapper around CustomMenu
+    // 0 = Start-Level, $depth = depth, 0 = Expandable levels, 1 = expand_all
+    self::CustomMenu(0, $depth, 0, 1);
+    }
 
 }
