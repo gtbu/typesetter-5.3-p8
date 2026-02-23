@@ -1258,9 +1258,14 @@ use function \intltime\strftime;
 		public static function Parents($index, $menu){
 			$parents = [];
 
-			if( !isset($menu[$index]) || !isset($menu[$index]['level']) ){
-				return $parents;
-			}
+			if (!is_array($menu) || $index === null) {
+            return $parents;
+            }
+
+         // Optional: prüfen, ob der Index überhaupt existiert
+            if (!array_key_exists($index, $menu) || !isset($menu[$index]['level'])) {
+            return $parents;
+            }
 
 			$checkLevel = $menu[$index]['level'];
 			$menu_ids = array_keys($menu);

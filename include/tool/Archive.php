@@ -89,8 +89,8 @@ class Archive{
 		switch( strtolower($this->extension) ){
 			case 'tbz':
 			case 'tgz':
-			case 'tar.gz';
-			case 'tar.bz';
+			case 'tar.gz':
+			case 'tar.bz':
 				$this->path			= preg_replace('#\.(tgz|tbz|tar.bz|tar.gz)$#','.tar',$this->path);
 			break;
 		}
@@ -133,10 +133,10 @@ class Archive{
 
 		if( strtolower($ext2) == 'tar' ){
 			switch(strtolower($ext1)){
-				case 'bz';
+				case 'bz':
 				return 'tar.bz';
 
-				case 'gz';
+				case 'gz':
 				return 'tar.gz';
 			}
 		}
