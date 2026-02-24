@@ -405,7 +405,7 @@ namespace gp\tool{
 						return imagecreatefrompng($source_path);
 					}
 				break;
-				case 'bmp';
+				case 'bmp':
 					if( $supported_types & IMG_WBMP) {
 						return imagecreatefromwbmp($source_path);
 					}

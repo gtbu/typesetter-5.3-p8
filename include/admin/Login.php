@@ -48,7 +48,7 @@ class Login extends \gp\Page{
 
 		$cmd = \gp\tool::GetCommand();
 		switch($cmd){
-			case 'send_password';
+			case 'send_password':
 				if( $this->SendPassword() ){
 					$this->LoginForm();
 				}else{

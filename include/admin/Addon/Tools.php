@@ -167,7 +167,7 @@ class Tools extends \gp\special\Base{
 
 		$cmd = \gp\tool::GetCommand();
 		switch($cmd){
-			case 'SendAddonReview';
+			case 'SendAddonReview':
 			if( $this->SendAddonReview() ){
 				return;
 			}
@@ -475,7 +475,7 @@ class Tools extends \gp\special\Base{
 
 		//invalid_rating_request
 		switch($detail){
-			case 'no_addon';
+			case 'no_addon':
 				msg('The supplied addon id was invalid.');
 			break;
 

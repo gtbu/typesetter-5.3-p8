@@ -35,7 +35,7 @@ namespace gp\tool{
 					$this->SMTPAuth = true;
 					$this->Username = \gp\tool::ConfigValue('smtp_user','');
 					$this->Password = \gp\tool::ConfigValue('smtp_pass','');
-				case 'smtp';
+				case 'smtp':
 					$this->IsSMTP();
 					$this->Host = \gp\tool::ConfigValue('smtp_hosts','');
 				break;

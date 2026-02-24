@@ -27,7 +27,7 @@ class Page extends \gp\Page{
 		if( $scriptinfo === false ){
 
 			switch($this->title){
-				case 'Special_ExtraJS';
+				case 'Special_ExtraJS':
 					$this->ExtraJS();
 				//dies
 			}

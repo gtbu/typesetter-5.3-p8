@@ -39,7 +39,7 @@ class Ajax extends \gp\admin\Menu{
 				$this->NewFile();
 				break;
 
-			case 'InsertFromHidden';
+			case 'InsertFromHidden':
 				$this->InsertFromHidden();
 				break;
 

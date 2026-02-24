@@ -58,7 +58,7 @@ namespace gp\tool{
 				case 'fsockopen':
 				return function_exists('fsockopen');
 
-				case 'curl';
+				case 'curl':
 				return function_exists('curl_init') && function_exists('curl_exec');
 
 			}
@@ -748,20 +748,28 @@ namespace gp\tool{
 		 * @param resource $handle stream handle
 		 * @return array|false Array with unprocessed string headers.
 		 */
-		public static function StreamHeaders($handle){
+		public static function StreamHeaders($handle) {
+            $meta = stream_get_meta_data($handle);
 
-			$meta = stream_get_meta_data($handle);
-			if( !isset($meta['wrapper_data']) ){
-				return $http_response_header; //$http_response_header is a PHP reserved variable which is set in the current-scope when using the HTTP Wrapper
-			}
+            if (!isset($meta['wrapper_data'])) {
 
-			$theHeaders = $meta['wrapper_data'];
-			if( isset($meta['wrapper_data']['headers']) ){
-				$theHeaders = $meta['wrapper_data']['headers'];
-			}
+            if (function_exists('http_get_last_response_headers')) {
+            $headers = http_get_last_response_headers();
+            // Optional: http_clear_last_response_headers(); // um „alte“ Header zu löschen
+            return $headers ?? [];
+            }
 
-			return $theHeaders;
-		}
+            // Fallback für ältere PHP-Versionen (< 8.4 bzw. < 8.5 Deprecation)
+            return isset($http_response_header) ? $http_response_header : [];
+            }
+
+            $theHeaders = $meta['wrapper_data'];
+            if (isset($meta['wrapper_data']['headers'])) {
+            $theHeaders = $meta['wrapper_data']['headers'];
+            }
+
+        return $theHeaders;
+        }
 
 
 		/**

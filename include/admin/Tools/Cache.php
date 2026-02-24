@@ -23,11 +23,11 @@ class Cache extends \gp\special\Base{
 
 		$cmd = \gp\tool::GetCommand();
 		switch($cmd){
-			case 'ViewFile';
+			case 'ViewFile':
 				$this->ViewFile();
 			return;
 
-			case 'DeleteFile';
+			case 'DeleteFile':
 				$this->DeleteFile();
 			break;
 
