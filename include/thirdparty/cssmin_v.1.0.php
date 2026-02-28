@@ -26,91 +26,91 @@
  * @version     1.0.2
  * modified 2025 by github.com/gtbu
  */
+ 
 class cssmin
 {
     /**
-     * Minifies CSS definitions.
+     * Minifies CSS safely using a placeholder extraction pattern.
      *
-     * @param mixed $css CSS content as a string. Accepts mixed for basic type check.
-     * @return string Minified CSS definitions, or an empty string if input is invalid or empty.
+     * @param mixed $css CSS content as a string.
+     * @param bool $debug Optional flag for logging errors.
+     * @return string Minified CSS or an empty string if input invalid.
      */
-    public static function minify($css)
+    public static function minify($css, $debug = false)
     {
-        // Basic input validation: Ensure it's a string.
         if (!is_string($css)) {
-             // error_log('cssmin::minify() expected a string, got ' . gettype($css)); // Optional logging
-             return ''; // Return empty string for invalid input
+            if ($debug) error_log('cssmin::minify() expected string, got ' . gettype($css));
+            return '';
         }
 
-        // 1. Initial cleanup: Remove leading/trailing whitespace and normalize line endings.
         $css = trim($css);
-        if ($css === '') {
-            return ''; // Return early if string is empty after trimming
+        if ($css === '') return '';
+
+        $placeholders =[];
+        // Unique prefix to prevent accidental overlaps
+        $phPrefix = '___CSSMIN_PH_' . uniqid() . '_';
+
+        // HELPFUL FUNCTION: Saves matches and returns placeholders
+        $savePlaceholder = function ($match) use (&$placeholders, $phPrefix) {
+            $key = $phPrefix . count($placeholders) . '___';
+            $placeholders[$key] = $match[0];
+            return $key;
+        };
+
+        // 1. SCHUTZ: Extracts Strings ("..." und '...') and url(...) 
+        // This protects content such as `content: " : "` or Data-URIs (base64)
+        $css = preg_replace_callback(
+            '/(?:url\(\s*[\'"]?(?:[^\'"\)]+)[\'"]?\s*\)|"(?:[^"\\\\]|\\\\.)*"|\'(?:[^\'\\\\]|\\\\.)*\')/is',
+            $savePlaceholder,
+            $css
+        );
+
+        // 2. PROTECTION: Extract CSS functions containing mathematical or variable content
+        // Protects calc(), clamp(), min(), max(), var(), env() including nested brackets! 
+        // (?1) is a recursive regex call for nested brackets in PCRE.
+        $css = preg_replace_callback(
+            '/(?:calc|clamp|min|max|var|env)(\((?:[^)(]+|(?1))*\))/is',
+            $savePlaceholder,
+            $css
+        );
+
+        // 3. REMOVE COMMENTS
+        // Since strings are now safe, we can safely delete all comments.
+        $css = preg_replace('/\/\*.*?\*\//s', '', $css);
+
+        // 4. WHITESPACES BEREINIGEN
+        // Make all whitespace into a single space
+        $css = preg_replace('/\s+/', ' ', $css);
+
+        // Remove spaces around structural characters
+        $replacements =[
+            '/\s*{\s*/' => '{',
+            '/\s*}\s*/' => '}',
+            '/\s*;\s*/' => ';',
+            '/\s*,\s*/' => ',',
+            '/\s*:\s*/' => ':',
+            '/;}/'      => '}', // Remove the last semicolon
+            '/\s*!important\s*/i' => '!important',
+        ];
+        $css = preg_replace(array_keys($replacements), array_values($replacements), $css);
+
+        // 5. MICRO-OPTIMIZATIONS (Safe)
+        // 0.5 -> .5 (safe)
+        $css = preg_replace('/(?<=[:\s,])0+\.(\d+)/', '.$1', $css);
+        // 1.00 -> 1 (sicher)
+        $css = preg_replace('/(?<=[:\s,])(\d+)\.0+(?=[^\d]|$)/', '$1', $css);
+        
+        // NOTE: The rule "0px -> 0" has been intentionally REMOVED!
+        // It saves hardly any bytes, but breaks CSS variables and Flexbox in older browsers.
+
+
+        // 6. RESTORE PLACEHOLDER
+        // In reverse order, if placeholders were nested within each other.
+        $placeholders = array_reverse($placeholders, true);
+        foreach ($placeholders as $key => $value) {
+            $css = str_replace($key, $value, $css);
         }
-        $css = str_replace("\r\n", "\n", $css); // Normalize line endings to LF
 
-        // 2. First round of regex replacements:
-        //    - Remove comments (/* ... */)
-        //    - Remove tabs
-        //    - Collapse multiple whitespace chars into a single space
-        //    - Remove whitespace after '}' but add a newline (for structure before next step)
-        $search = array(
-            "/\/\*[\s\S]*?\*\//", // Remove /* ... */ comments. [\s\S] matches any char incl. newline. *? is non-greedy.
-            "/\t+/",             // Remove tabs.
-            "/\s+/",             // Collapse whitespace (includes space, tab, newline) into a single space.
-            "/\}\s+/"            // Remove whitespace following a '}' and add a newline.
-        );
-        $replace = array(
-            "",                  // Remove comments.
-            "",                  // Remove tabs.
-            " ",                 // Collapse whitespace to a single space.
-            "}\n"                // Add newline after closing brace.
-        );
-        $css = preg_replace($search, $replace, $css);
-
-        // Check if preg_replace failed (returned null)
-        if ($css === null) {
-            // error_log('cssmin::minify() preg_replace step 1 failed'); // Optional logging
-            return ''; // Return empty on regex error
-        }
-
-
-        // 3. Second round of regex replacements:
-        //    - Remove whitespace around critical CSS characters: ;, {, :, #, ,, '
-        //    - Remove whitespace between ':' and simple values (keywords, numbers).
-        $search = array(
-            "/;\s+/",                 // Remove whitespace after semicolons (e.g., "; " => ";").
-            "/\s*\{\s*/",            // Remove whitespace around opening braces (e.g., " { " => "{").
-            "/:\s+#/",               // Remove whitespace after colon before # (e.g., ": #" => ":#").
-            "/,\s+/",                // Remove whitespace after commas (e.g., ", " => ",").
-            "/:\s+'/",               // Remove whitespace after colon before single quotes (e.g., ": '" => ":'").
-            "/:\s+\"/",              // Remove whitespace after colon before double quotes (e.g., ': "' => ':"'). (Added for consistency)
-            "/:\s+([a-zA-Z0-9\-]+)/i" // Remove whitespace after colon before common values (keywords, numbers, units like 'px'). Case-insensitive.
-                                     // (e.g., "color: red" => "color:red", "margin: 10px" => "margin:10px"). Uses backreference $1.
-        );
-        $replace = array(
-            ";",                     // ;
-            "{",                     // {
-            ":#",                    // :#
-            ",",                     // ,
-            ":'",                    // :'
-            ":\"",                   // :" (Added)
-            ":$1"                    // :value (using backreference)
-        );
-        $css = preg_replace($search, $replace, $css);
-
-        // Check if preg_replace failed (returned null)
-        if ($css === null) {
-            // error_log('cssmin::minify() preg_replace step 2 failed'); // Optional logging
-            return ''; // Return empty on regex error
-        }
-
-        // 4. Final step: Remove all remaining newline characters.
-        //    This contradicts step 2 adding newlines after '}', but matches the original code's behavior
-        //    resulting in a single-line output.
-        $css = str_replace("\n", "", $css);
-
-        // Final trim just in case (though unlikely needed after previous steps)
         return trim($css);
     }
 }
