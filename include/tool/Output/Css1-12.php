@@ -2,10 +2,8 @@
 
 namespace gp\tool\Output;
 
-require_once $dataDir . '/include/thirdparty/ScssPhp/vendor/autoload_2.10.php'; 
-
+/* require_once $dataDir . '/include/thirdparty/ScssPhp/ScssPhp' . '/scss.inc.php'; */
 use ScssPhp\ScssPhp\Compiler;
-
 use function ScssPhp\ScssPhp\getIncludedFiles;
 use ScssPhp\ScssPhp\Parser;
 use ScssPhp\ScssPhp\OutputStyle;
@@ -141,7 +139,6 @@ class Css{
 		$relative				= self::GetRelPath($first_file);
 
 		$compiler				= new \gp\tool\Output\Scss();
-		$compiler->setLogger(new \ScssPhp\ScssPhp\Logger\QuietLogger());
 		$compiler->url_root		= \gp\tool::GetDir(dirname($relative));
 		$compiled				= false;
 		$combined				= [];
