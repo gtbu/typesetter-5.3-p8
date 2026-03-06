@@ -18,6 +18,7 @@ body {
   // vendor-prefix mixin
   @include vp-flexbox();
   @include vp-flex-direction(column);
+   overflow-x: hidden;
 }
 
 // Height fix for Admin Top Bar and hidden admin UI
@@ -47,6 +48,7 @@ footer.main-footer {
   // vendor-prefix mixin
   @include vp-flex-shrink(0);
   // more in footer.scss
+  margin-bottom:0.01em;  
 }
 
 // Fix for bad container paddings in navbars (as of Bootstrap 4.1.1)

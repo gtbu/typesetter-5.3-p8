@@ -133,7 +133,7 @@ $lang = isset($page->lang) ? $page->lang : $config['language'];
       </section>
   </main><!-- /.main-content -->
 
-    <footer class="main-footer position-absolute bottom-0 mt-auto p-2">
+    <footer class="main-footer bottom-0 mt-auto p-2">
       <div class="container">
 
         <div class="row">
