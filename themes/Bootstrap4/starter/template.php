@@ -138,7 +138,7 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 		</div><!-- /.main-body -->
 
 
-		<footer class="main-footer mt-2 mt-md-4 pb-2">
+		<footer class="main-footer mt-2 mt-md-4 pb-2 fixed-bottom">
 
 			<?php
 				// assign footer nav classes for possible footer menus (e.g. added via Layout Editor)

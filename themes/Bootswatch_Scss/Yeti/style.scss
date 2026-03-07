@@ -441,3 +441,9 @@ input[type="checkbox"] {
     color: $text-color;
   }
 }
+
+.fixed-bottom {
+	position: fixed;
+	bottom: 0;
+	z-index: 1030;
+}

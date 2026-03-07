@@ -442,3 +442,9 @@ a.list-group-item {
     border-color: #000;
   }
 }
+
+.fixed-bottom {
+	position: fixed;
+	bottom: 0;
+	z-index: 1030;
+}

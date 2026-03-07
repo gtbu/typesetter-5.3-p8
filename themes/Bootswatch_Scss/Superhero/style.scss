@@ -346,3 +346,9 @@ a.list-group-item {
     border: none;
   }
 }
+
+.fixed-bottom {
+	position: fixed;
+	bottom: 0;
+	z-index: 1030;
+}

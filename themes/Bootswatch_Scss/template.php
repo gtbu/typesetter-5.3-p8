@@ -78,7 +78,7 @@ $lang = isset($page->lang) ? $page->lang : $config['language'];
 	$page->GetContent();
 	?>
 	<hr/>
-	<footer><p>
+	<footer class="fixed-bottom">><p>
 	<?php
 	gpOutput::GetAdminLink();
 	?>
