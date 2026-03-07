@@ -159,7 +159,7 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 
 			<div class="<?php echo $footer_container_class; ?>">
 
-				<hr/>
+				<br/>
 
 				<div class="row">
 

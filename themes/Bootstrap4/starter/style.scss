@@ -13,6 +13,12 @@
 @import '../_common/contact_form.scss';
 @import '../_common/search.scss';
 
+
+footer.main-footer{
+  color: #212529 !important;
+  background-color: #e9ecef !important;
+  }
+
 // ### Imports ###
 @import 'footer_nav.scss';
 
