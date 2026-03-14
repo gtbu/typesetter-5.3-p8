@@ -743,32 +743,32 @@ namespace gp\tool{
 		 *
 		 * @access public
 		 * @static
-		 * @since 1.7
 		 *
 		 * @param resource $handle stream handle
 		 * @return array|false Array with unprocessed string headers.
 		 */
-		public static function StreamHeaders($handle) {
-            $meta = stream_get_meta_data($handle);
+		public static function StreamHeaders($handle): array
+        {
+        $meta = stream_get_meta_data($handle);
 
-            if (!isset($meta['wrapper_data'])) {
+        // 1. Stream-Wrapper Header (immer verfügbar)
+        if (isset($meta['wrapper_data'])) {
+        return is_array($meta['wrapper_data']) ? $meta['wrapper_data'] : [$meta['wrapper_data']];
+        }
 
-            if (function_exists('http_get_last_response_headers')) {
-            $headers = http_get_last_response_headers();
-            // Optional: http_clear_last_response_headers(); // um „alte“ Header zu löschen
-            return $headers ?? [];
-            }
+        // 2. RFC-konformer Weg: EIGENE Variable setzen
+        $response_headers = null;
+    
+        if (function_exists('http_get_last_response_headers')) {
+         // PHP 8.4+: Neue API
+        $response_headers = http_get_last_response_headers();
+        if (function_exists('http_clear_last_response_headers')) {
+            http_clear_last_response_headers();
+        }
+        }
+         // PHP < 8.4: $response_headers bleibt null (Stream-Wrapper hat schon geliefert)
 
-            // Fallback für ältere PHP-Versionen (< 8.4 bzw. < 8.5 Deprecation)
-            return isset($http_response_header) ? $http_response_header : [];
-            }
-
-            $theHeaders = $meta['wrapper_data'];
-            if (isset($meta['wrapper_data']['headers'])) {
-            $theHeaders = $meta['wrapper_data']['headers'];
-            }
-
-        return $theHeaders;
+         return $response_headers ?? [];
         }
 
 
