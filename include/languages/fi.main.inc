@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Asetukset',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Ylläpito',
+	'User management'                 => 'Käyttäjähallinta',
 	'save'                            => 'Tallenna',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

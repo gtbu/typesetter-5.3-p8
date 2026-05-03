@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => '設定',
 	'Tools'                           => 'Tools',
 	'administration'                  => '系統管理',
+	'User management'                 => '用户管理',
 	'save'                            => '儲存',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

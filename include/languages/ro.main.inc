@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Setări',
 	'Tools'                           => 'Unelte',
 	'administration'                  => 'Administrare',
+	'User management'                 => 'Gestionarea utilizatorilor',
 	'save'                            => 'Salvează',
 	'Saved'                           => 'Salvat',
 	'Saving'                          => 'Salvare',

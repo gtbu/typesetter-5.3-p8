@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Stillingar',
 	'Tools'                           => 'Verkfæri',
 	'administration'                  => 'Stjórnun',
+	'User management'                 => 'Notendastjórnun',
 	'save'                            => 'Vista',
 	'Saved'                           => 'Vistað',
 	'Saving'                          => 'Vistun',

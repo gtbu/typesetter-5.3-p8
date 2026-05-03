@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Parinktys',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Administravimas',
+    'User management'                 => 'Vartotojų valdymas',
 	'save'                            => 'Saugoti',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

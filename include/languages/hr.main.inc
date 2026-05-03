@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Postavke',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Administracija',
+	'User management'                 => 'Upravljanje korisnicima',
 	'save'                            => 'Pohrani',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

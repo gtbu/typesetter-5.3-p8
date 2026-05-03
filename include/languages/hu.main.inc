@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Beállítások',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Adminisztrálás',
+	'User management'                 => 'Felhasználókezelés',
 	'save'                            => 'Mentés',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

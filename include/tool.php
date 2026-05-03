@@ -547,7 +547,7 @@ use function \intltime\strftime;
 		 * @return string The escaped string
 		 */
 		public static function Ampersands($str){
-			return preg_replace('/&(?![#a-zA-Z0-9]{2,9};)/S', '&amp;', $str);
+			return preg_replace('/&(?![#a-zA-Z0-9]{2,9};)/S', '&amp;', $str ?? '');
 		}
 
 

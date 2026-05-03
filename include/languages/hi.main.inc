@@ -14,6 +14,7 @@ $langmessage = array (
 	'Settings'                        => 'सेटिंग्स',
 	'Tools'                           => 'उपकरण',
 	'administration'                  => 'प्रशासन',
+	'User management'                 => 'उपयोगकर्ता प्रबंधन',
 	'save'                            => 'सेव करें',
 	'Saved'                           => 'सेव किया गया',
 	'Saving'                          => 'सेव हो रहा है',

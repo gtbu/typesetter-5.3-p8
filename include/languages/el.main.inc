@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Ρυθμίσεις',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Διαχείριση',
+	'User management'                 => 'Διαχείριση χρηστών',
 	'save'                            => 'Αποθήκευση',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',

@@ -15,6 +15,7 @@ $langmessage = array (
 	'Settings'                        => 'Axustes',
 	'Tools'                           => 'Tools',
 	'administration'                  => 'Administración',
+	'User management'                 => 'Xestión de usuarios',
 	'save'                            => 'Gardar',
 	'Saved'                           => 'Saved',
 	'Saving'                          => 'Saving',
