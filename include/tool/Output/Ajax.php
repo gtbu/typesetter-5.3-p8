@@ -182,27 +182,28 @@ namespace gp\tool\Output{
 			if( !empty($section_data['type']) ){
 				$type = $section_data['type'];
 			}
-			switch($type){
+			
+			switch ($type) {
 
-				case 'gallery':
-					$scripts = self::InlineEdit_Gallery($scripts);
-				break;
+            case 'gallery':
+            $scripts = self::InlineEdit_Gallery($scripts);
+            break;
 
-				case 'include':
-					$scripts = self::InlineEdit_Include($scripts);
-				break;
+            case 'include':
+            $scripts = self::InlineEdit_Include($scripts);
+            break;
 
-				case 'text';
-					$scripts = self::InlineEdit_Text($scripts);
-				break;
+            case 'text':
+            $scripts = self::InlineEdit_Text($scripts);
+            break;
 
-				case 'image';
-					echo 'var gp_blank_img = ' . \gp\tool::JsonEncode(\gp\tool::GetDir('/include/imgs/blank.gif')) . ';';
-					$scripts[] = '/include/js/jquery.auto_upload.js';
-					$scripts[] = '/include/js/inline_edit/image_common.js';
-					$scripts[] = '/include/js/inline_edit/image_edit.js';
-				break;
-			}
+            case 'image':
+            echo 'var gp_blank_img = ' . \gp\tool::JsonEncode(\gp\tool::GetDir('/include/imgs/blank.gif')) . ';';
+            $scripts[] = '/include/js/jquery.auto_upload.js';
+            $scripts[] = '/include/js/inline_edit/image_common.js';
+            $scripts[] = '/include/js/inline_edit/image_edit.js';
+            break;
+            }
 
 			$scripts = \gp\tool\Plugins::Filter('InlineEdit_Scripts',array($scripts,$type));
 
