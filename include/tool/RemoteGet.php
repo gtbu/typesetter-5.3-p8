@@ -15,6 +15,7 @@ namespace gp\tool {
         protected $body = '';
         protected $headers = '';
         protected $bytes_written_total = 0;
+        protected $curl_truncated = false;
 
         public static function Test(){
             foreach(static::$methods as $method){
@@ -55,11 +56,11 @@ namespace gp\tool {
         }
 
         public function Get($url,$args=array()){
-            static::$debug                 = array();
-            static::$debug['Redir']        = 0;
-            static::$debug['FailedMethods'] = '';
-            static::$debug['NotSupported']  = '';
-            static::$redirected            = null;
+            static::$debug                  = array();
+            static::$debug['Redir']         = 0;
+            static::$debug['FailedMethods']  = '';
+            static::$debug['NotSupported']   = '';
+            static::$redirected             = null;
 
             return $this->_get($url,$args);
         }
@@ -69,6 +70,7 @@ namespace gp\tool {
             $this->body = '';
             $this->headers = '';
             $this->bytes_written_total = 0;
+            $this->curl_truncated = false;
 
             $url = str_replace(' ','%20',$url);
             $url = static::FixScheme($url);
@@ -86,11 +88,11 @@ namespace gp\tool {
             $defaults = array(
                 'method'         => 'GET',
                 'timeout'         => 5,
-                'redirection'     => 5,
-                'httpversion'     => '1.0',
-                'user-agent'      => 'Mozilla/5.0 (Typesetter RemoteGet)',
-                'ignore_errors'   => false,
-                'headers'         => array(),
+                'redirection'    => 5,
+                'httpversion'    => '1.0',
+                'user-agent'     => 'Mozilla/5.0 (Typesetter RemoteGet)',
+                'ignore_errors'  => false,
+                'headers'        => array(),
             );
 
             $args = array_merge($defaults, is_array($args) ? $args : array());
@@ -106,7 +108,7 @@ namespace gp\tool {
 
                 if( $result === false ){
                     static::$debug['FailedMethods'] .= $method.',';
-                    return false;
+                    continue;
                 }
 
                 static::$debug['Method'] = $method;
@@ -126,45 +128,42 @@ namespace gp\tool {
             return false;
         }
 
-       public function stream_request($url, $r)
-{
-    $arrContext = $this->stream_context($url, $r);
-    $context = stream_context_create($arrContext);
-    $handle = fopen($url, 'r', false, $context);
+        public function stream_request($url, $r){
+            $arrContext = $this->stream_context($url, $r);
+            $context = stream_context_create($arrContext);
+            $handle = fopen($url, 'r', false, $context);
 
-    if ($handle === false) {
-        static::$debug['stream'] = 'no handle: ' . $url;
-        return false;
-    }
+            if( $handle === false ){
+                static::$debug['stream'] = 'no handle: ' . $url;
+                return false;
+            }
 
-    static::stream_timeout($handle, $r['timeout']);
+            static::stream_timeout($handle, $r['timeout']);
 
-    // Fehlerbehandlung für stream_get_contents
-    set_error_handler(function ($severity, $message, $file, $line) {
-        // Fehler in static::$debug speichern, aber nicht anzeigen
-        static::$debug['stream_error'] = $message;
-    });
+            set_error_handler(function ($severity, $message) {
+                static::$debug['stream_error'] = $message;
+            });
 
-    $strResponse = stream_get_contents($handle, static::$maxlength);
+            $strResponse = stream_get_contents($handle, static::$maxlength);
 
-    restore_error_handler();
+            restore_error_handler();
 
-    if ($strResponse === false || $strResponse === '') {
-        static::$debug['stream'] = empty(static::$debug['stream_error'])
-            ? 'no response'
-            : 'no response: ' . static::$debug['stream_error'];
-        fclose($handle);
-        return false;
-    }
+            if( $strResponse === false || $strResponse === '' ){
+                static::$debug['stream'] = empty(static::$debug['stream_error'])
+                    ? 'no response'
+                    : 'no response: ' . static::$debug['stream_error'];
+                fclose($handle);
+                return false;
+            }
 
-    $theHeaders = static::StreamHeaders($handle);
-    fclose($handle);
+            $theHeaders = static::StreamHeaders($handle);
+            fclose($handle);
 
-    $processedHeaders = static::processHeaders($theHeaders);
-    $this->body = static::chunkTransferDecode($strResponse, $processedHeaders);
+            $processedHeaders = static::processHeaders($theHeaders);
+            $this->body = static::chunkTransferDecode($strResponse, $processedHeaders);
 
-    return $this->ReturnRequest($url, $r, $processedHeaders);
-}
+            return $this->ReturnRequest($url, $r, $processedHeaders);
+        }
 
         public function stream_context($url,$r){
             $arrContext = array();
@@ -178,7 +177,7 @@ namespace gp\tool {
             );
 
             if( isset($r['http']) && is_array($r['http']) ){
-                $arrContext['http'] = $r['http'] + $arrContext['http'];
+                $arrContext['http'] = $arrContext['http'] + $r['http'];
             }
 
             if( !empty($r['headers']) && is_array($r['headers']) ){
@@ -215,11 +214,13 @@ namespace gp\tool {
 
         public static function ParseUrl($url){
             $arr_url = parse_url($url);
-            if( is_array($arr_url) ){
-                $arr_url += array('path'=>'');
-            }elseif( \gp\tool::LoggedIn() ){
-                trigger_error('invalid url: '.$url.' '.pre($url));
+            if( $arr_url === false ){
+                if( \gp\tool::LoggedIn() ){
+                    trigger_error('invalid url: ' . $url . ' ' . var_export($url, true));
+                }
+                return false;
             }
+            $arr_url += array('path'=>'');
             return $arr_url;
         }
 
@@ -245,10 +246,7 @@ namespace gp\tool {
             $iError = null;
             $strError = null;
 
-            $port = 80;
-            if( !empty($this->url_array['port']) ){
-                $port = (int)$this->url_array['port'];
-            }
+            $port = !empty($this->url_array['port']) ? (int)$this->url_array['port'] : 80;
 
             $handle = fsockopen($fsockopen_host, $port, $iError, $strError, $r['timeout']);
 
@@ -274,12 +272,20 @@ namespace gp\tool {
 
         protected function ReqHeader($r){
             $requestPath = $this->url_array['path'] . ( isset($this->url_array['query']) ? '?' . $this->url_array['query'] : '' );
-            if( empty($requestPath) ){
-                $requestPath .= '/';
+            if( $requestPath === '' ){
+                $requestPath = '/';
             }
 
             $strHeaders = strtoupper($r['method']) . ' ' . $requestPath . ' HTTP/' . $r['httpversion'] . "\r\n";
-            $strHeaders .= 'Host: ' . $this->url_array['host'] . "\r\n";
+
+            $host = $this->url_array['host'];
+            if( !empty($this->url_array['port']) ){
+                $port = (int)$this->url_array['port'];
+                if( !($this->url_array['scheme'] === 'http' && $port === 80) && !($this->url_array['scheme'] === 'https' && $port === 443) ){
+                    $host .= ':' . $port;
+                }
+            }
+            $strHeaders .= 'Host: ' . $host . "\r\n";
 
             if( isset($r['user-agent']) ){
                 $strHeaders .= 'User-Agent: ' . $r['user-agent'] . "\r\n";
@@ -292,7 +298,6 @@ namespace gp\tool {
             }
 
             $strHeaders .= "\r\n";
-
             return $strHeaders;
         }
 
@@ -338,7 +343,14 @@ namespace gp\tool {
 
             curl_exec($handle);
 
-            if( !$r['ignore_errors'] && curl_errno($handle) ){
+            $errno = curl_errno($handle);
+            if( $errno ){
+                if( $errno === CURLE_WRITE_ERROR && $this->curl_truncated ){
+                    $errno = 0;
+                }
+            }
+
+            if( !$r['ignore_errors'] && $errno ){
                 static::$debug['curl_error'] = curl_error($handle);
                 curl_close($handle);
                 return false;
@@ -357,6 +369,17 @@ namespace gp\tool {
 
         private function curl_body($handle, $data) {
             $data_length = strlen($data);
+
+            if( static::$maxlength > -1 && $this->bytes_written_total + $data_length > static::$maxlength ){
+                $remaining = static::$maxlength - $this->bytes_written_total;
+                if( $remaining > 0 ){
+                    $this->body .= substr($data, 0, $remaining);
+                    $this->bytes_written_total += $remaining;
+                }
+                $this->curl_truncated = true;
+                return 0;
+            }
+
             $this->body .= $data;
             $this->bytes_written_total += $data_length;
             return $data_length;
@@ -367,8 +390,8 @@ namespace gp\tool {
                 return;
             }
 
-            $timeout = (int) floor($time);
-            $utimeout = (int)(($time - $timeout) * 1000000);
+            $timeout = max(0, (int) floor($time));
+            $utimeout = max(0, (int)(($time - $timeout) * 1000000));
             stream_set_timeout($handle, $timeout, $utimeout);
         }
 
@@ -399,13 +422,13 @@ namespace gp\tool {
 
         public function Inflate(){
             $body = @gzdecode($this->body);
-            if( $body ){
+            if( $body !== false ){
                 $this->body = $body;
                 return true;
             }
 
             $body = @gzinflate(substr($this->body, 10));
-            if( $body ){
+            if( $body !== false ){
                 $this->body = $body;
                 return true;
             }
@@ -449,18 +472,23 @@ namespace gp\tool {
             }elseif( isset($location[0]) && $location[0] == '?' ){
                 $location = $this->url_array['scheme'].'://'.rtrim($this->url_array['host'],'/').'/'.ltrim($this->url_array['path'],'/').$location;
             }elseif( isset($location[0]) && $location[0] == '/' ){
-                $location = $this->url_array['scheme'].'://'.rtrim($this->url_array['host'],'/').$location;
-            }elseif( preg_match('#^[a-z]+:#i',$location) ){
+                $host = $this->url_array['host'];
+                if( !empty($this->url_array['port']) ){
+                    $port = (int)$this->url_array['port'];
+                    if( !($this->url_array['scheme'] === 'http' && $port === 80) && !($this->url_array['scheme'] === 'https' && $port === 443) ){
+                        $host .= ':' . $port;
+                    }
+                }
+                $location = $this->url_array['scheme'].'://'.rtrim($host,'/').$location;
+            }elseif( preg_match('#^[a-z]+:#i', $location) ){
             }else{
                 $urla = $this->url_array;
                 unset($urla['query'], $urla['fragment']);
 
                 if( empty($urla['path']) || $urla['path'] == '/' ){
                     $urla['path'] = $location;
-                }elseif( substr($urla['path'],-1) != '/' ){
-                    $urla['path'] = dirname($urla['path']) . '/' . ltrim($location,'/');
                 }else{
-                    $urla['path'] = rtrim($urla['path'],'/') . '/' . ltrim($location,'/');
+                    $urla['path'] = rtrim($urla['path'], '/') . '/' . ltrim($location, '/');
                 }
 
                 $location = static::unparse_url($urla);
@@ -476,7 +504,12 @@ namespace gp\tool {
             $user     = isset($parsed_url['user']) ? $parsed_url['user'] : '';
             $pass     = isset($parsed_url['pass']) ? ':' . $parsed_url['pass']  : '';
             $pass     = ($user || $pass) ? "$pass@" : '';
-            $path     = isset($parsed_url['path']) ? '/'.ltrim($parsed_url['path'],'/') : '';
+
+            $path     = isset($parsed_url['path']) ? $parsed_url['path'] : '';
+            if( $path !== '' && $path[0] !== '/' ){
+                $path = '/' . $path;
+            }
+
             $query    = isset($parsed_url['query']) ? '?' . $parsed_url['query'] : '';
             $fragment = isset($parsed_url['fragment']) ? '#' . $parsed_url['fragment'] : '';
 
@@ -490,21 +523,38 @@ namespace gp\tool {
 
             $parsed_body = '';
             $body_original = $body;
+            $iteration = 0;
+            $maxIterations = 1000;
 
-            while ( true ) {
-                $has_chunk = (bool) preg_match('/^([0-9a-f]+)[^\r\n]*\r\n/i', $body, $match);
-                if( ! $has_chunk || empty($match[1]) ){
+            while( true ){
+                if( ++$iteration > $maxIterations ){
+                    return $body_original;
+                }
+
+                if( !preg_match('/^([0-9a-f]+)[^\r\n]*\r\n/i', $body, $match) || empty($match[1]) ){
                     return $body_original;
                 }
 
                 $length = (int) hexdec($match[1]);
                 $chunk_length = strlen($match[0]);
-                $parsed_body .= substr($body, $chunk_length, $length);
-                $body = substr($body, $length + $chunk_length);
+                $body = substr($body, $chunk_length);
 
-                if( '0' === trim($body) ){
+                if( $length === 0 ){
                     return $parsed_body;
                 }
+
+                if( strlen($body) < $length + 2 ){
+                    return $body_original;
+                }
+
+                $parsed_body .= substr($body, 0, $length);
+                $body = substr($body, $length);
+
+                if( substr($body, 0, 2) !== "\r\n" ){
+                    return $body_original;
+                }
+
+                $body = substr($body, 2);
             }
         }
 
@@ -525,13 +575,13 @@ namespace gp\tool {
         }
 
         public static function StreamHeaders($handle = null, bool $parseAsAssociative = false): array {
-            $rawHeaders = [];
+            $rawHeaders = array();
 
-            if (is_array($handle)) {
+            if( is_array($handle) ){
                 $rawHeaders = $handle;
-            } elseif (is_resource($handle)) {
+            }elseif( is_resource($handle) ){
                 $meta = stream_get_meta_data($handle);
-                if (isset($meta['wrapper_data']) && is_array($meta['wrapper_data'])) {
+                if( isset($meta['wrapper_data']) && is_array($meta['wrapper_data']) ){
                     $rawHeaders = $meta['wrapper_data'];
                 }
             }
@@ -540,16 +590,18 @@ namespace gp\tool {
         }
 
         private static function parseRawHeaders(array $headers): array {
-            $parsed = [];
-            foreach ($headers as $header) {
-                if (!is_string($header)) continue;
+            $parsed = array();
+            foreach( $headers as $header ){
+                if( !is_string($header) ){
+                    continue;
+                }
 
-                if (str_starts_with($header, 'HTTP/') || str_starts_with($header, ':')) {
+                if( str_starts_with($header, 'HTTP/') || str_starts_with($header, ':') ){
                     $parsed['status'] = $header;
                     continue;
                 }
 
-                if (str_contains($header, ':')) {
+                if( str_contains($header, ':') ){
                     [$key, $value] = explode(':', $header, 2);
                     $key = strtolower(trim($key));
                     $value = trim($value);
@@ -557,15 +609,21 @@ namespace gp\tool {
                 }
             }
 
-            return array_map(fn($v) => is_array($v) && count($v) === 1 ? $v[0] : $v, $parsed);
+            return array_map(function($v){
+                return is_array($v) && count($v) === 1 ? $v[0] : $v;
+            }, $parsed);
         }
 
         public static function processResponse(string $strResponse): array {
-            $parts = preg_split("/\r?\n\r?\n/", $strResponse, 2);
-            return [
+            $parts = explode("\r\n\r\n", $strResponse, 2);
+            if( count($parts) === 1 ){
+                $parts = explode("\n\n", $parts[0], 2);
+            }
+
+            return array(
                 'headers' => $parts[0] ?? '',
                 'body' => $parts[1] ?? '',
-            ];
+            );
         }
 
         public static function processHeaders($headers) {
@@ -576,9 +634,9 @@ namespace gp\tool {
 
             foreach( $headers as $tempheader ){
                 if( false === strpos((string)$tempheader, ':') ){
-                    $stack = explode(' ', (string)$tempheader, 3);
-                    $stack[] = '';
-                    list( , $response['code'], $response['message']) = $stack;
+                    $stack = explode(' ', trim((string)$tempheader), 3);
+                    $response['code'] = isset($stack[1]) ? (int)$stack[1] : 0;
+                    $response['message'] = $stack[2] ?? '';
                     continue;
                 }
 
@@ -602,7 +660,7 @@ namespace gp\tool {
         }
 
         protected static function HeadersArray($headers){
-            if ( is_string($headers) ) {
+            if( is_string($headers) ){
                 $headers = str_replace("\r\n", "\n", $headers);
                 $headers = preg_replace('/\n[ \t]/', ' ', $headers);
                 $headers = explode("\n", $headers);
