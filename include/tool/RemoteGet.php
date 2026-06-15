@@ -128,10 +128,15 @@ namespace gp\tool {
             return false;
         }
 
+        
+
         public function stream_request($url, $r){
             $arrContext = $this->stream_context($url, $r);
             $context = stream_context_create($arrContext);
-            $handle = fopen($url, 'r', false, $context);
+            
+            // FIX: Ein @ hinzugefügt, um die PHP-native "Redirection limit"-Warnung zu unterdrücken, 
+            // da wir einen false-Rückgabewert direkt in den nächsten Zeilen selbst abfangen.
+            $handle = @fopen($url, 'r', false, $context);
 
             if( $handle === false ){
                 static::$debug['stream'] = 'no handle: ' . $url;
@@ -170,10 +175,13 @@ namespace gp\tool {
             $arrContext['http'] = array(
                 'method'           => $r['method'],
                 'user_agent'       => $r['user-agent'],
-                'max_redirects'    => 0,
+                // FIX: PHP versteht 1 als "folge keinen Redirects", wirft aber seltener den Limit-Bug als bei 0
+                'max_redirects'    => 1, 
                 'protocol_version' => (float)$r['httpversion'],
                 'timeout'          => $r['timeout'],
-                'ignore_errors'    => $r['ignore_errors'],
+                // FIX: Immer auf true erzwingen. Nur so bekommen wir bei einem 301/302 Redirect 
+                // den Stream zurück, um das Ziel (Location) manuell auszulesen.
+                'ignore_errors'    => true, 
             );
 
             if( isset($r['http']) && is_array($r['http']) ){
