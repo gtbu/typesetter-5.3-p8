@@ -104,16 +104,15 @@ namespace gp\tool {
                     continue;
                 }
 
-                $result = $this->GetMethod($method,$url,$args);
+                $result = $this->GetMethod($method, $url, $args);
 
-                if( $result === false ){
-                    static::$debug['FailedMethods'] .= $method.',';
-                    continue;
+                if ($result === false || !is_array($result)) {
+                static::$debug['FailedMethods'] .= $method . ',';
+                continue;
                 }
 
                 static::$debug['Method'] = $method;
-                static::$debug['Len'] = strlen($result['body']);
-
+                static::$debug['Len'] = strlen($result['body'] ?? '');
                 return $result;
             }
 
@@ -129,7 +128,105 @@ namespace gp\tool {
         }
 
         
+		
+		protected function get_request($url, $args = array())
+        {
+        $handle = curl_init($url);
+        if ($handle === false) {
+        return false;
+        }
 
+        $args = array_merge(
+        [
+            'timeout' => 5,
+            'ignore_errors' => false,
+            'headers' => [],
+            'user-agent' => 'Mozilla/5.0 (Typesetter RemoteGet)',
+        ],
+        $args
+        );
+
+        curl_setopt_array($handle, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => $args['timeout'],
+        CURLOPT_USERAGENT      => $args['user-agent'],
+        CURLOPT_HTTPHEADER     => $args['headers'],
+        ]);
+
+        $body = curl_exec($handle);
+        $errno = curl_errno($handle);
+
+        if (!$args['ignore_errors'] && $errno) {
+        static::$debug['curl_error'] = curl_error($handle);
+        return false;
+        }
+
+        if ($body === false) {
+        static::$debug['curl_error'] = curl_error($handle);
+        return false;
+        }
+
+        $headers = curl_getinfo($handle);
+
+        return [
+        'body'    => $body,
+        'headers' => $headers,
+        'code'    => $headers['http_code'],
+        ];
+        }
+
+        protected function post_request($url, $args = array())
+        {
+        $handle = curl_init($url);
+        if ($handle === false) {
+        return false;
+        }
+
+        $args = array_merge(
+        [
+            'timeout' => 5,
+            'ignore_errors' => false,
+            'headers' => [],
+            'user-agent' => 'Mozilla/5.0 (Typesetter RemoteGet)',
+            'data' => [],
+        ],
+        $args
+        );
+
+        curl_setopt_array($handle, [
+        CURLOPT_URL            => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => $args['timeout'],
+        CURLOPT_USERAGENT      => $args['user-agent'],
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $args['data'],
+        CURLOPT_HTTPHEADER     => $args['headers'],
+        ]);
+
+        $body = curl_exec($handle);
+        $errno = curl_errno($handle);
+
+        if (!$args['ignore_errors'] && $errno) {
+        static::$debug['curl_error'] = curl_error($handle);
+        return false;
+        }
+
+        if ($body === false) {
+        static::$debug['curl_error'] = curl_error($handle);
+        return false;
+        }
+
+        $headers = curl_getinfo($handle);
+
+        return [
+        'body'    => $body,
+        'headers' => $headers,
+        'code'    => $headers['http_code'],
+        ];
+        }
+		
+		
         public function stream_request($url, $r){
             $arrContext = $this->stream_context($url, $r);
             $context = stream_context_create($arrContext);
@@ -168,9 +265,9 @@ namespace gp\tool {
             $this->body = static::chunkTransferDecode($strResponse, $processedHeaders);
 
             return $this->ReturnRequest($url, $r, $processedHeaders);
-        }
+            }
 
-        public function stream_context($url,$r){
+            public function stream_context($url,$r){
             $arrContext = array();
             $arrContext['http'] = array(
                 'method'           => $r['method'],
@@ -197,9 +294,9 @@ namespace gp\tool {
             }
 
             return $arrContext;
-        }
+         }
 
-        public function fopen_request($url,$r){
+         public function fopen_request($url,$r){
             $handle = fopen($url, 'r');
 
             if( $handle === false ){
@@ -320,55 +417,64 @@ namespace gp\tool {
             return $response;
         }
 
-        protected function curl_request($url, $r){
-            $handle = curl_init();
-            if( $handle === false ){
-                return false;
-            }
+        protected function curl_request($url, $r)
+         {
+         $handle = curl_init();
+         if ($handle === false) {
+         return false;
+         }
 
-            $timeout = (int) ceil($r['timeout']);
-            curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, $timeout);
-            curl_setopt($handle, CURLOPT_TIMEOUT, $timeout);
-            curl_setopt($handle, CURLOPT_URL, $url);
-            curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($handle, CURLOPT_USERAGENT, $r['user-agent']);
-            curl_setopt($handle, CURLOPT_FOLLOWLOCATION, false);
+         $timeout = (int) ceil($r['timeout']);
+         curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, $timeout);
+         curl_setopt($handle, CURLOPT_TIMEOUT, $timeout);
+         curl_setopt($handle, CURLOPT_URL, $url);
+         curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+         curl_setopt($handle, CURLOPT_USERAGENT, $r['user-agent']);
+         curl_setopt($handle, CURLOPT_FOLLOWLOCATION, false);
 
-            if( defined('CURLOPT_PROTOCOLS') ){
-                curl_setopt($handle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-            }
+         if (defined('CURLOPT_PROTOCOLS')) {
+         curl_setopt($handle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+         }
 
-            curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $r['method']);
-            curl_setopt($handle, CURLOPT_HEADERFUNCTION, array($this, 'curl_headers'));
-            curl_setopt($handle, CURLOPT_WRITEFUNCTION, array($this, 'curl_body'));
-            curl_setopt($handle, CURLOPT_HEADER, 0);
+         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $r['method']);
+         curl_setopt($handle, CURLOPT_HEADERFUNCTION, array($this, 'curl_headers'));
+         curl_setopt($handle, CURLOPT_WRITEFUNCTION, array($this, 'curl_body'));
+         curl_setopt($handle, CURLOPT_HEADER, 0);
 
-            if( $r['httpversion'] == '1.0' ){
-                curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-            }else{
-                curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-            }
+         if ($r['httpversion'] == '1.0') {
+         curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+         } else {
+         curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+         }
 
-            curl_exec($handle);
+         $body = curl_exec($handle);
+         $errno = curl_errno($handle);
 
-            $errno = curl_errno($handle);
-            if( $errno ){
-                if( $errno === CURLE_WRITE_ERROR && $this->curl_truncated ){
-                    $errno = 0;
-                }
-            }
+         if (!$args['ignore_errors'] && $errno) {
+         // <-- Achtung: hier müsste $r['ignore_errors'] statt $args sein
+         static::$debug['curl_error'] = curl_error($handle);
+         return false;
+         }
 
-            if( !$r['ignore_errors'] && $errno ){
-                static::$debug['curl_error'] = curl_error($handle);
-                curl_close($handle);
-                return false;
-            }
+         if ($body === false) {
+         static::$debug['curl_error'] = curl_error($handle);
+         return false;
+         }
 
-            curl_close($handle);
+         if (!$r['ignore_errors'] && $errno) {
+         static::$debug['curl_error'] = curl_error($handle);
+         return false;
+         }
 
-            $processedHeaders = static::processHeaders($this->headers);
-            return $this->ReturnRequest($url, $r, $processedHeaders);
-        }
+         $headers = curl_getinfo($handle);
+
+         return [
+            'body'    => $this->body,
+            'headers' => $headers,
+            'code'    => $headers['http_code'],
+           ];
+         }
+		
 
         private function curl_headers($handle, $headers) {
             $this->headers .= $headers;
