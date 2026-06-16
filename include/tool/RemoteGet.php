@@ -107,8 +107,8 @@ namespace gp\tool {
                 $result = $this->GetMethod($method, $url, $args);
 
                 if ($result === false || !is_array($result)) {
-                static::$debug['FailedMethods'] .= $method . ',';
-                continue;
+                    static::$debug['FailedMethods'] .= $method . ',';
+                    continue;
                 }
 
                 static::$debug['Method'] = $method;
@@ -127,106 +127,127 @@ namespace gp\tool {
             return false;
         }
 
-        
-		
-		protected function get_request($url, $args = array())
+        /**
+         * Canonical curl-based request implementation.
+         * Normalizes headers, supports POST data via $r['data'],
+         * uses callbacks to collect headers/body and returns the normalized structure.
+         */
+        protected function curl_request($url, $r)
         {
-        $handle = curl_init($url);
-        if ($handle === false) {
-        return false;
+            // reset state captured by callbacks
+            $this->headers = '';
+            $this->body = '';
+            $this->bytes_written_total = 0;
+            $this->curl_truncated = false;
+
+            $handle = curl_init();
+            if ($handle === false) {
+                return false;
+            }
+
+            // Normalize outgoing headers: associative -> ["Key: Value", ...]
+            $curlHeaders = array();
+            if (!empty($r['headers']) && is_array($r['headers'])) {
+                $isAssoc = array_keys($r['headers']) !== range(0, count($r['headers']) - 1);
+                if ($isAssoc) {
+                    foreach ($r['headers'] as $hk => $hv) {
+                        $curlHeaders[] = $hk . ': ' . $hv;
+                    }
+                } else {
+                    $curlHeaders = $r['headers'];
+                }
+            }
+
+            $timeout = (int) ceil($r['timeout']);
+            curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, $timeout);
+            curl_setopt($handle, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($handle, CURLOPT_URL, $url);
+            curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($handle, CURLOPT_USERAGENT, $r['user-agent']);
+            curl_setopt($handle, CURLOPT_FOLLOWLOCATION, false);
+
+            if (defined('CURLOPT_PROTOCOLS')) {
+                curl_setopt($handle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+            }
+
+            curl_setopt($handle, CURLOPT_CUSTOMREQUEST, strtoupper($r['method']));
+            curl_setopt($handle, CURLOPT_HEADERFUNCTION, array($this, 'curl_headers'));
+            curl_setopt($handle, CURLOPT_WRITEFUNCTION, array($this, 'curl_body'));
+            curl_setopt($handle, CURLOPT_HEADER, 0);
+
+            if (!empty($curlHeaders)) {
+                curl_setopt($handle, CURLOPT_HTTPHEADER, $curlHeaders);
+            }
+
+            if (!empty($r['data'])) {
+                // Allow both array and string data
+                curl_setopt($handle, CURLOPT_POSTFIELDS, $r['data']);
+                if (strtoupper($r['method']) === 'POST') {
+                    curl_setopt($handle, CURLOPT_POST, true);
+                }
+            }
+
+            if ($r['httpversion'] == '1.0') {
+                curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
+            } else {
+                curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+            }
+
+            $execResult = curl_exec($handle);
+            $errno = curl_errno($handle);
+
+            // Use $r (not undefined $args) for ignore_errors check
+            if (!$r['ignore_errors'] && $errno) {
+                static::$debug['curl_error'] = curl_error($handle);
+                curl_close($handle);
+                return false;
+            }
+
+            // if exec entirely failed and no body was collected
+            if ($execResult === false && $this->body === '') {
+                static::$debug['curl_error'] = curl_error($handle);
+                curl_close($handle);
+                return false;
+            }
+
+            $curlInfo = curl_getinfo($handle);
+            //curl_close($handle);
+
+            // Process raw headers captured in $this->headers
+            $processedHeaders = static::processHeaders($this->headers);
+
+            // ensure response code present (fallback to curl info)
+            if (empty($processedHeaders['response']['code']) && isset($curlInfo['http_code'])) {
+                $processedHeaders['response']['code'] = (int)$curlInfo['http_code'];
+            }
+
+            // Return normalized structure (handles redirects, gzip, etc)
+            return $this->ReturnRequest($url, $r, $processedHeaders);
         }
 
-        $args = array_merge(
-        [
-            'timeout' => 5,
-            'ignore_errors' => false,
-            'headers' => [],
-            'user-agent' => 'Mozilla/5.0 (Typesetter RemoteGet)',
-        ],
-        $args
-        );
-
-        curl_setopt_array($handle, [
-        CURLOPT_URL            => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => $args['timeout'],
-        CURLOPT_USERAGENT      => $args['user-agent'],
-        CURLOPT_HTTPHEADER     => $args['headers'],
-        ]);
-
-        $body = curl_exec($handle);
-        $errno = curl_errno($handle);
-
-        if (!$args['ignore_errors'] && $errno) {
-        static::$debug['curl_error'] = curl_error($handle);
-        return false;
+        private function curl_headers($handle, $headers) {
+            $this->headers .= $headers;
+            return strlen($headers);
         }
 
-        if ($body === false) {
-        static::$debug['curl_error'] = curl_error($handle);
-        return false;
+        private function curl_body($handle, $data) {
+            $data_length = strlen($data);
+
+            if( static::$maxlength > -1 && $this->bytes_written_total + $data_length > static::$maxlength ){
+                $remaining = static::$maxlength - $this->bytes_written_total;
+                if( $remaining > 0 ){
+                    $this->body .= substr($data, 0, $remaining);
+                    $this->bytes_written_total += $remaining;
+                }
+                $this->curl_truncated = true;
+                return 0;
+            }
+
+            $this->body .= $data;
+            $this->bytes_written_total += $data_length;
+            return $data_length;
         }
 
-        $headers = curl_getinfo($handle);
-
-        return [
-        'body'    => $body,
-        'headers' => $headers,
-        'code'    => $headers['http_code'],
-        ];
-        }
-
-        protected function post_request($url, $args = array())
-        {
-        $handle = curl_init($url);
-        if ($handle === false) {
-        return false;
-        }
-
-        $args = array_merge(
-        [
-            'timeout' => 5,
-            'ignore_errors' => false,
-            'headers' => [],
-            'user-agent' => 'Mozilla/5.0 (Typesetter RemoteGet)',
-            'data' => [],
-        ],
-        $args
-        );
-
-        curl_setopt_array($handle, [
-        CURLOPT_URL            => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => $args['timeout'],
-        CURLOPT_USERAGENT      => $args['user-agent'],
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => $args['data'],
-        CURLOPT_HTTPHEADER     => $args['headers'],
-        ]);
-
-        $body = curl_exec($handle);
-        $errno = curl_errno($handle);
-
-        if (!$args['ignore_errors'] && $errno) {
-        static::$debug['curl_error'] = curl_error($handle);
-        return false;
-        }
-
-        if ($body === false) {
-        static::$debug['curl_error'] = curl_error($handle);
-        return false;
-        }
-
-        $headers = curl_getinfo($handle);
-
-        return [
-        'body'    => $body,
-        'headers' => $headers,
-        'code'    => $headers['http_code'],
-        ];
-        }
-		
-		
         public function stream_request($url, $r){
             $arrContext = $this->stream_context($url, $r);
             $context = stream_context_create($arrContext);
@@ -265,9 +286,9 @@ namespace gp\tool {
             $this->body = static::chunkTransferDecode($strResponse, $processedHeaders);
 
             return $this->ReturnRequest($url, $r, $processedHeaders);
-            }
+        }
 
-            public function stream_context($url,$r){
+        public function stream_context($url,$r){
             $arrContext = array();
             $arrContext['http'] = array(
                 'method'           => $r['method'],
@@ -297,7 +318,11 @@ namespace gp\tool {
          }
 
          public function fopen_request($url,$r){
-            $handle = fopen($url, 'r');
+            // Use a stream context so headers/options in $r are respected (was previously using fopen without context)
+            $arrContext = $this->stream_context($url, $r);
+            $context = stream_context_create($arrContext);
+
+            $handle = @fopen($url, 'r', false, $context);
 
             if( $handle === false ){
                 static::$debug['fopen'] = 'no handle';
@@ -415,88 +440,6 @@ namespace gp\tool {
                 }
             }
             return $response;
-        }
-
-        protected function curl_request($url, $r)
-         {
-         $handle = curl_init();
-         if ($handle === false) {
-         return false;
-         }
-
-         $timeout = (int) ceil($r['timeout']);
-         curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, $timeout);
-         curl_setopt($handle, CURLOPT_TIMEOUT, $timeout);
-         curl_setopt($handle, CURLOPT_URL, $url);
-         curl_setopt($handle, CURLOPT_RETURNTRANSFER, true);
-         curl_setopt($handle, CURLOPT_USERAGENT, $r['user-agent']);
-         curl_setopt($handle, CURLOPT_FOLLOWLOCATION, false);
-
-         if (defined('CURLOPT_PROTOCOLS')) {
-         curl_setopt($handle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-         }
-
-         curl_setopt($handle, CURLOPT_CUSTOMREQUEST, $r['method']);
-         curl_setopt($handle, CURLOPT_HEADERFUNCTION, array($this, 'curl_headers'));
-         curl_setopt($handle, CURLOPT_WRITEFUNCTION, array($this, 'curl_body'));
-         curl_setopt($handle, CURLOPT_HEADER, 0);
-
-         if ($r['httpversion'] == '1.0') {
-         curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
-         } else {
-         curl_setopt($handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-         }
-
-         $body = curl_exec($handle);
-         $errno = curl_errno($handle);
-
-         if (!$args['ignore_errors'] && $errno) {
-         // <-- Achtung: hier müsste $r['ignore_errors'] statt $args sein
-         static::$debug['curl_error'] = curl_error($handle);
-         return false;
-         }
-
-         if ($body === false) {
-         static::$debug['curl_error'] = curl_error($handle);
-         return false;
-         }
-
-         if (!$r['ignore_errors'] && $errno) {
-         static::$debug['curl_error'] = curl_error($handle);
-         return false;
-         }
-
-         $headers = curl_getinfo($handle);
-
-         return [
-            'body'    => $this->body,
-            'headers' => $headers,
-            'code'    => $headers['http_code'],
-           ];
-         }
-		
-
-        private function curl_headers($handle, $headers) {
-            $this->headers .= $headers;
-            return strlen($headers);
-        }
-
-        private function curl_body($handle, $data) {
-            $data_length = strlen($data);
-
-            if( static::$maxlength > -1 && $this->bytes_written_total + $data_length > static::$maxlength ){
-                $remaining = static::$maxlength - $this->bytes_written_total;
-                if( $remaining > 0 ){
-                    $this->body .= substr($data, 0, $remaining);
-                    $this->bytes_written_total += $remaining;
-                }
-                $this->curl_truncated = true;
-                return 0;
-            }
-
-            $this->body .= $data;
-            $this->bytes_written_total += $data_length;
-            return $data_length;
         }
 
         public static function stream_timeout($handle,$time){
@@ -740,6 +683,15 @@ namespace gp\tool {
             );
         }
 
+        /**
+         * Parse headers into normalized structure and extract cookies from Set-Cookie headers.
+         *
+         * Returns array(
+         *   'response' => array('code' => int, 'message' => string),
+         *   'headers' => array(key => value or array),
+         *   'cookies' => array(list of cookie arrays)
+         * )
+         */
         public static function processHeaders($headers) {
             $headers = static::HeadersArray($headers);
             $response = array('code' => 0, 'message' => '');
@@ -765,6 +717,79 @@ namespace gp\tool {
                     $newheaders[$key][] = $value;
                 }else{
                     $newheaders[$key] = $value;
+                }
+            }
+
+            // Parse Set-Cookie headers into structured cookies
+            if( isset($newheaders['set-cookie']) ){
+                $setCookieValues = (array)$newheaders['set-cookie']; // ensure array
+                foreach($setCookieValues as $scValue){
+                    $scValue = trim((string)$scValue);
+                    if( $scValue === '' ) continue;
+
+                    $cookie = array(
+                        'name'     => '',
+                        'value'    => '',
+                        'expires'  => null,
+                        'path'     => null,
+                        'domain'   => null,
+                        'secure'   => false,
+                        'httponly' => false,
+                        'sameSite' => null,
+                        'raw'      => $scValue,
+                    );
+
+                    $parts = array_map('trim', explode(';', $scValue));
+                    // first part is name=value
+                    $nv = array_shift($parts);
+                    if( strpos($nv, '=') !== false ){
+                        list($cname, $cvalue) = explode('=', $nv, 2);
+                        $cookie['name']  = trim($cname);
+                        $cookie['value'] = trim($cvalue);
+                    }else{
+                        // malformed but keep raw
+                        $cookie['name']  = '';
+                        $cookie['value'] = $nv;
+                    }
+
+                    foreach($parts as $attr){
+                        if( $attr === '' ) continue;
+                        if( strpos($attr, '=') !== false ){
+                            list($ak, $av) = explode('=', $attr, 2);
+                            $ak = strtolower(trim($ak));
+                            $av = trim($av);
+
+                            switch($ak){
+                                case 'expires':
+                                    $cookie['expires'] = ($ts = strtotime($av)) ? $ts : $av;
+                                    break;
+                                case 'path':
+                                    $cookie['path'] = $av;
+                                    break;
+                                case 'domain':
+                                    $cookie['domain'] = $av;
+                                    break;
+                                case 'samesite':
+                                    $cookie['sameSite'] = $av;
+                                    break;
+                                default:
+                                    // store unknown attributes as-is
+                                    $cookie[$ak] = $av;
+                                    break;
+                            }
+                        }else{
+                            $akey = strtolower(trim($attr));
+                            if( $akey === 'secure' ){
+                                $cookie['secure'] = true;
+                            }elseif( $akey === 'httponly' ){
+                                $cookie['httponly'] = true;
+                            }else{
+                                $cookie[$akey] = true;
+                            }
+                        }
+                    }
+
+                    $cookies[] = $cookie;
                 }
             }
 
