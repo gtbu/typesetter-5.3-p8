@@ -555,9 +555,9 @@ class Menu{
 		}
 
 		$title_index = false;
-		if( isset($gp_index[$title]) ){
-			$title_index = $gp_index[$title];
-		}
+		if ($title !== null && isset($gp_index[$title])) {
+        $title_index = $gp_index[$title];
+        }
 
 		$args = explode(',',$arg);
 		$args += array( 0=>0, 1=>3, 2=>-1, 3=>1, 4=>'' ); //defaults
