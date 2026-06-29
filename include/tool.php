@@ -190,10 +190,11 @@ use function \intltime\strftime;
 
 			$inheritance = \gp\admin\Menu\Tools::Inheritance_Info();
 
-			if( isset($inheritance[$page->gp_index]['parent_layout']) ){
-				// page inherits the layout from main menu parent
-				return $inheritance[$page->gp_index]['parent_layout'];
-			}
+			$gp_index = $page->gp_index ?? '';
+            if ($gp_index !== '' && isset($inheritance[$gp_index]['parent_layout'])) {
+            // page inherits the layout from main menu parent
+            return $inheritance[$gp_index]['parent_layout'];
+            }
 
 			// page uses the default layout
 			return $config['gpLayout'];
