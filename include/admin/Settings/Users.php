@@ -32,9 +32,44 @@ class Users extends \gp\special\Base{
 		$this->page->head_js[]			= '/include/js/admin_users.js';
 		$this->possible_permissions		= $this->PossiblePermissions();
 		$this->GetUsers();
-
 	}
 
+
+	/**
+	 * Sanitize username input
+	 *
+	 */
+	protected function SanitizeUsername($username){
+		// Remove dots and underscores, then check if alphanumeric
+		$testu = str_replace(array('.','_'), array(''), $username);
+		if(empty($testu) || !ctype_alnum($testu)){
+			return false;
+		}
+		// Limit length to reasonable amount
+		if(strlen($username) > 50){
+			return false;
+		}
+		return $username;
+	}
+
+	/**
+	 * Validate email address
+	 *
+	 */
+	protected function ValidateEmail($email){
+		if(empty($email)){
+			return true; // Email is optional
+		}
+		// Use filter_var for proper email validation
+		if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
+			return false;
+		}
+		// Limit length
+		if(strlen($email) > 254){
+			return false;
+		}
+		return $email;
+	}
 
 	/**
 	 * Return an array of possible permissions
@@ -46,11 +81,11 @@ class Users extends \gp\special\Base{
 
 		foreach($scripts as $script => $info){
 
-			if( isset($info['permission']) ){
+			if(isset($info['permission'])){
 				continue;
 			}
 
-			if( !isset($info['label']) ){
+			if(!isset($info['label'])){
 				continue;
 			}
 			$script = str_replace('/','_',$script);
@@ -68,30 +103,38 @@ class Users extends \gp\special\Base{
 	public function SaveChanges(){
 		global $langmessage,$gpAdmin;
 
-		$username =& $_REQUEST['username'];
-		if( !isset($this->users[$username]) ){
+		// Safely get and validate username
+		$username = isset($_REQUEST['username']) ? (string)$_REQUEST['username'] : '';
+		$username = $this->SanitizeUsername($username);
+
+		if($username === false || !isset($this->users[$username])){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-		if( !empty($_POST['email']) ){
-			$this->users[$username]['email'] = $_POST['email'];
+		// Validate and save email
+		if(!empty($_POST['email'])){
+			$email = $this->ValidateEmail($_POST['email']);
+			if($email === false){
+				msg($langmessage['OOPS']);
+				return false;
+			}
+			$this->users[$username]['email'] = $email;
 		}
 
 		$this->users[$username]['granted'] = $this->GetPostedPermissions($username);
 		$this->users[$username]['editing'] = $this->GetEditingPermissions();
 
-		//this needs to happen before SaveUserFile();
-		//update the /_session file
-		$userinfo =& $this->users[$username];
-		$userinfo = \gp\tool\Session::SetSessionFileName($userinfo,$username); //make sure $userinfo['file_name'] is set
+		// Update the session file
+		$userinfo = $this->users[$username];
+		$userinfo = \gp\tool\Session::SetSessionFileName($userinfo,$username);
+		$this->users[$username] = $userinfo;
 
-
-		if( !$this->SaveUserFile() ){
+		if(!$this->SaveUserFile()){
 			return false;
 		}
 
-		// update the $user_file_name file
+		// Update the user's session file
 		$this->UserFileDetails($username);
 		return true;
 	}
@@ -103,22 +146,32 @@ class Users extends \gp\special\Base{
 	public function UserFileDetails($username){
 		global $dataDir, $gpAdmin;
 
+		// Validate username
+		$username = $this->SanitizeUsername($username);
+		if($username === false){
+			return false;
+		}
+
+		if(!isset($this->users[$username])){
+			return false;
+		}
+
 		$user_info			= $this->users[$username];
 		$user_file			= $dataDir.'/data/_sessions/'.$user_info['file_name'];
 
-		if( $gpAdmin['username'] === $username ){
-			$new_info =& $gpAdmin;
+		if($gpAdmin['username'] === $username){
+			$new_info = $gpAdmin;
 		}else{
 			$new_info = \gp\tool\Files::Get($user_file,'gpAdmin');
 		}
 
-		if( !$new_info ){
-			return;
+		if(!$new_info){
+			return false;
 		}
 
 		$new_info['granted'] = $user_info['granted'];
 		$new_info['editing'] = $user_info['editing'];
-		\gp\tool\Files::SaveData($user_file,'gpAdmin',$new_info);
+		return \gp\tool\Files::SaveData($user_file,'gpAdmin',$new_info);
 	}
 
 	/**
@@ -128,13 +181,15 @@ class Users extends \gp\special\Base{
 	public function ChangeDetails(){
 		global $langmessage;
 
-		$username =& $_REQUEST['username'];
-		if( !isset($this->users[$username]) ){
+		$username = isset($_REQUEST['username']) ? (string)$_REQUEST['username'] : '';
+		$username = $this->SanitizeUsername($username);
+
+		if($username === false || !isset($this->users[$username])){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-		echo '<h2>'.$langmessage['user_permissions'].'</h2>';
+		echo '<h2>'.htmlspecialchars($langmessage['user_permissions']).'</h2>';
 
 		$userinfo = $this->users[$username];
 
@@ -145,9 +200,9 @@ class Users extends \gp\special\Base{
 		echo '<table class="bordered">';
 		echo '<tr>';
 			echo '<th colspan="2">';
-			echo $langmessage['details'];
+			echo htmlspecialchars($langmessage['details']);
 			echo ' - ';
-			echo $username;
+			echo htmlspecialchars($username);
 			echo '</th>';
 			echo '</tr>';
 
@@ -155,15 +210,14 @@ class Users extends \gp\special\Base{
 
 		echo '<tr><td>';
 			echo '</td><td>';
-			echo ' <input type="submit" name="aaa" value="'.$langmessage['save'].'" class="gpsubmit"/>';
+			echo ' <input type="submit" name="aaa" value="'.htmlspecialchars($langmessage['save']).'" class="gpsubmit"/>';
 			echo ' <input type="reset" class="gpsubmit" />';
-			echo ' <input type="submit" name="cmd" value="'.$langmessage['cancel'].'" class="gpcancel"/>';
+			echo ' <input type="submit" name="cmd" value="'.htmlspecialchars($langmessage['cancel']).'" class="gpcancel"/>';
 			echo '</td>';
 			echo '</tr>';
 
 		echo '</table>';
 		echo '</form>';
-
 	}
 
 	/**
@@ -174,8 +228,8 @@ class Users extends \gp\special\Base{
 		global $langmessage;
 		$username = $this->CheckUser();
 
-		if( $username == false ){
-			return;
+		if($username === false){
+			return false;
 		}
 
 		unset($this->users[$username]);
@@ -188,60 +242,92 @@ class Users extends \gp\special\Base{
 	 */
 	public function CheckUser(){
 		global $langmessage,$gpAdmin;
-		$username = $_POST['username'];
 
-		if( !isset($this->users[$username]) ){
+		$username = isset($_POST['username']) ? (string)$_POST['username'] : '';
+		$username = $this->SanitizeUsername($username);
+
+		if($username === false || !isset($this->users[$username])){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-		//don't allow deleting self
-		if( $username == $gpAdmin['username'] ){
+		// Don't allow deleting self
+		if($username === $gpAdmin['username']){
 			msg($langmessage['OOPS']);
 			return false;
 		}
+
 		return $username;
 	}
 
+	/**
+	 * Validate password strength
+	 *
+	 */
+	protected function ValidatePasswordStrength($password){
+		// Minimum length check
+		if(strlen($password) < 8){
+			return false;
+		}
+		// Could add more complexity checks here if needed
+		return true;
+	}
 
-
+	/**
+	 * Create a new user
+	 *
+	 */
 	public function CreateNewUser(){
 		global $langmessage;
-		$_POST += array('grant'=>'');
 
-		if( ($_POST['password']=="") || ($_POST['password'] !== $_POST['password1'])  ){
+		$_POST = array_merge(array('grant'=>'', 'email'=>''), $_POST);
+
+		// Validate password
+		if(empty($_POST['password']) || ($_POST['password'] !== $_POST['password1'])){
 			msg($langmessage['invalid_password']);
 			return false;
 		}
 
+		// Validate password strength
+		if(!$this->ValidatePasswordStrength($_POST['password'])){
+			msg('Password must be at least 8 characters long');
+			return false;
+		}
 
-		$newname = $_POST['username'];
-		$test = str_replace( array('.','_'), array(''), $newname );
-		if( empty($test) || !ctype_alnum($test) ){
+		$newname = (string)$_POST['username'];
+		$newname = $this->SanitizeUsername($newname);
+
+		if($newname === false){
 			msg($langmessage['invalid_username']);
 			return false;
 		}
 
-		if( isset($this->users[$newname]) ){
+		if(isset($this->users[$newname])){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-
-		if( !empty($_POST['email']) ){
-			$this->users[$newname]['email'] = $_POST['email'];
+		// Validate and save email
+		if(!empty($_POST['email'])){
+			$email = $this->ValidateEmail($_POST['email']);
+			if($email === false){
+				msg($langmessage['OOPS']);
+				return false;
+			}
+			$this->users[$newname]['email'] = $email;
 		}
 
 		$this->users[$newname]['granted']	= $this->GetPostedPermissions($newname);
 		$this->users[$newname]['editing']	= $this->GetEditingPermissions();
 
-		$this->SetUserPass( $newname, $_POST['password']);
+		$this->SetUserPass($newname, $_POST['password']);
 
-		if( $this->SaveUserFile() ){
+		if($this->SaveUserFile()){
 			$url = \gp\tool::GetUrl('Admin/Users','',false);
 			\gp\tool::Redirect($url);
 		}
 
+		return false;
 	}
 
 
@@ -249,11 +335,15 @@ class Users extends \gp\special\Base{
 	 * Set the user password and password hash algorithm
 	 *
 	 */
-	public function SetUserPass( $username, $password ){
+	public function SetUserPass($username, $password){
 
-		$user_info =& $this->users[$username];
+		if(!isset($this->users[$username])){
+			return false;
+		}
 
-		if( function_exists('password_hash') && $_REQUEST['algo'] == 'password_hash' ){
+		$user_info = &$this->users[$username];
+
+		if(function_exists('password_hash') && isset($_REQUEST['algo']) && $_REQUEST['algo'] === 'password_hash'){
 			$temp					= \gp\tool::hash($password,'sha512',50);
 			$user_info['password']	= password_hash($temp,PASSWORD_DEFAULT);
 			$user_info['passhash']	= 'password_hash';
@@ -263,6 +353,7 @@ class Users extends \gp\special\Base{
 			$user_info['passhash']	= 'sha512';
 		}
 
+		return true;
 	}
 
 
@@ -273,19 +364,19 @@ class Users extends \gp\special\Base{
 	public function GetPostedPermissions($username){
 		global $gpAdmin;
 
-		if( isset($_POST['grant_all']) && ($_POST['grant_all'] == 'all') ){
+		if(isset($_POST['grant_all']) && $_POST['grant_all'] === 'all'){
 			return 'all';
 		}
 
-		$_POST += array('grant'=>array());
+		$_POST = array_merge(array('grant'=>array()), $_POST);
 		$array = $_POST['grant'];
 
-		//cannot remove self from Admin/Users
-		if( $username == $gpAdmin['username'] ){
+		// Cannot remove self from Admin/Users
+		if($username === $gpAdmin['username']){
 			$array = array_merge($array, array('Admin/Users'));
 		}
 
-		if( !is_array($array) ){
+		if(!is_array($array)){
 			return '';
 		}
 
@@ -302,35 +393,39 @@ class Users extends \gp\special\Base{
 	public function GetEditingPermissions(){
 		global $gp_titles;
 
-		if( isset($_POST['editing_all']) && ($_POST['editing_all'] == 'all') ){
+		if(isset($_POST['editing_all']) && $_POST['editing_all'] === 'all'){
 			return 'all';
 		}
 
-		$_POST += array('titles'=>array());
+		$_POST = array_merge(array('titles'=>array()), $_POST);
 		$array = $_POST['titles'];
-		if( !is_array($array) ){
+
+		if(!is_array($array)){
 			return '';
 		}
 
 		$keys = array_keys($gp_titles);
 		$array = array_intersect($keys,$array);
-		if( count($array) > 0 ){
+		if(count($array) > 0){
 			return ','.implode(',',$array).',';
 		}
 		return '';
 	}
 
 
-
-	public function SaveUserFile($refresh = true ){
+	/**
+	 * Save user file
+	 *
+	 */
+	public function SaveUserFile($refresh = true){
 		global $langmessage;
 
-		if( !\gp\tool\Files::SaveData('_site/users','users',$this->users) ){
+		if(!\gp\tool\Files::SaveData('_site/users','users',$this->users)){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-		if( $refresh && isset($_GET['gpreq']) && $_GET['gpreq'] == 'json' ){
+		if($refresh && isset($_GET['gpreq']) && $_GET['gpreq'] === 'json'){
 			msg($langmessage['SAVED'].' '.$langmessage['REFRESH']);
 		}else{
 			msg($langmessage['SAVED']);
@@ -346,83 +441,81 @@ class Users extends \gp\special\Base{
 	public function DefaultDisplay(){
 		global $langmessage;
 
-
-		echo '<h2>'.$langmessage['user_permissions'].'</h2>';
+		echo '<h2>'.htmlspecialchars($langmessage['user_permissions']).'</h2>';
 
 		ob_start();
 		echo '<table class="bordered full_width">';
 		echo '<tr><th>';
-		echo $langmessage['username'];
+		echo htmlspecialchars($langmessage['username']);
 		echo '</th><th>';
-		echo $langmessage['Password Algorithm'];
+		echo htmlspecialchars($langmessage['Password Algorithm']);
 		echo '</th><th>';
-		echo $langmessage['permissions'];
+		echo htmlspecialchars($langmessage['permissions']);
 		echo '</th><th>';
-		echo $langmessage['file_editing'];
+		echo htmlspecialchars($langmessage['file_editing']);
 		echo '</th><th>';
-		echo $langmessage['options'];
+		echo htmlspecialchars($langmessage['options']);
 		echo '</th></tr>';
 
 		foreach($this->users as $username => $userinfo){
 
 			echo '<tr><td>';
-			echo $username;
+			echo htmlspecialchars($username);
 
-			//algorithm
+			// Algorithm
 			echo '</td><td>';
 			$this->PassAlgo($userinfo);
 
-
-			//admin permissions
+			// Admin permissions
 			echo '</td><td>';
-				if( $userinfo['granted'] == 'all' ){
-					echo 'all';
-				}elseif( !empty($userinfo['granted']) ){
+				if($userinfo['granted'] === 'all'){
+					echo htmlspecialchars('all');
+				}elseif(!empty($userinfo['granted'])){
 
 					$permissions = explode(',',$userinfo['granted']);
 					$list = array();
 					foreach($permissions as $permission){
-						if( isset($this->possible_permissions[$permission]) ){
-							$list[] = $this->possible_permissions[$permission];
+						if(isset($this->possible_permissions[$permission])){
+							$list[] = strip_tags($this->possible_permissions[$permission]);
 						}
 					}
-					if( count($list) ){
-						echo implode(', ',$list);
+					if(count($list)){
+						echo htmlspecialchars(implode(', ',$list));
 					}else{
-						echo $langmessage['None'];
+						echo htmlspecialchars($langmessage['None']);
 					}
 				}else{
-					echo $langmessage['None'];
+					echo htmlspecialchars($langmessage['None']);
 				}
 
 			echo '</td>';
 
-			//file editing
+			// File editing
 			echo '<td>';
 
-			if( $userinfo['editing'] == 'all' ){
-				echo $langmessage['All'];
+			if($userinfo['editing'] === 'all'){
+				echo htmlspecialchars($langmessage['All']);
 			}else{
 
-				$count = preg_match_all('#,#',$userinfo['editing']) - 1; //count the commas
-				if( $count > 0 ){
-					echo sprintf($langmessage['%s Pages'],$count);
+				$count = preg_match_all('#,#',$userinfo['editing']) - 1;
+				if($count > 0){
+					echo htmlspecialchars(sprintf($langmessage['%s Pages'],$count));
 				}else{
-					echo $langmessage['None'];
+					echo htmlspecialchars($langmessage['None']);
 				}
 			}
 
 			echo '</td>';
 
-			//options
+			// Options
 			echo '<td>';
-			echo \gp\tool::Link('Admin/Users',$langmessage['details'],'cmd=details&username='.$username);
+			echo \gp\tool::Link('Admin/Users',$langmessage['details'],'cmd=details&username='.urlencode($username));
 			echo ' &nbsp; ';
-			echo \gp\tool::Link('Admin/Users',$langmessage['password'],'cmd=changepass&username='.$username);
+			echo \gp\tool::Link('Admin/Users',$langmessage['password'],'cmd=changepass&username='.urlencode($username));
 			echo ' &nbsp; ';
 
 			$title = sprintf($langmessage['generic_delete_confirm'],htmlspecialchars($username));
-			echo \gp\tool::Link('Admin/Users',$langmessage['delete'],'cmd=RemoveUser&username='.$username,array('data-cmd'=>'postlink','title'=>$title,'class'=>'gpconfirm'));
+			echo \gp\tool::Link('Admin/Users',$langmessage['delete'],'cmd=RemoveUser&username='.urlencode($username),array('data-cmd'=>'postlink','title'=>$title,'class'=>'gpconfirm'));
 			echo '</td>';
 			echo '</tr>';
 		}
@@ -434,7 +527,7 @@ class Users extends \gp\special\Base{
 
 		$content = ob_get_clean();
 
-		if( $this->has_weak_pass ){
+		if($this->has_weak_pass){
 			echo '<p class="gp_notice"><b>Warning:</b> ';
 			echo 'Weak password algorithms are being used for one or more users. To fix this issue, reset the user\'s password. ';
 			echo '</p>';
@@ -454,11 +547,11 @@ class Users extends \gp\special\Base{
 		switch($algo){
 			case 'md5':
 			case 'sha1':
-			$this->has_weak_pass = true;
-			echo '<span style="color:red">'.$algo.'</span>';
-			return;
+				$this->has_weak_pass = true;
+				echo '<span style="color:red">'.htmlspecialchars($algo).'</span>';
+				return;
 		}
-		echo $algo;
+		echo htmlspecialchars($algo);
 	}
 
 
@@ -469,27 +562,27 @@ class Users extends \gp\special\Base{
 	public function NewUserForm(){
 		global $langmessage;
 
-		echo '<h2>'.$langmessage['user_permissions'].'</h2>';
+		echo '<h2>'.htmlspecialchars($langmessage['user_permissions']).'</h2>';
 
-		$_POST += array('username'=>'','email'=>'','grant'=>array(),'grant_all'=>'all','editing_all'=>'all');
+		$_POST = array_merge(array('username'=>'','email'=>'','grant'=>array(),'grant_all'=>'all','editing_all'=>'all'), $_POST);
 
 		echo '<form action="'.\gp\tool::GetUrl('Admin/Users').'" method="post" id="permission_form">';
 		echo '<table class="bordered" style="width:95%">';
 		echo '<tr><th colspan="2">';
-			echo $langmessage['new_user'];
+			echo htmlspecialchars($langmessage['new_user']);
 			echo '</th></tr>';
 		echo '<tr><td>';
-			echo $langmessage['username'];
+			echo htmlspecialchars($langmessage['username']);
 			echo '</td><td>';
 			echo '<input type="text" name="username" value="'.htmlspecialchars($_POST['username']).'" class="gpinput"/>';
 			echo '</td></tr>';
 		echo '<tr><td>';
-			echo $langmessage['password'];
+			echo htmlspecialchars($langmessage['password']);
 			echo '</td><td>';
 			echo '<input type="password" name="password" value="" class="gpinput"/>';
 			echo '</td></tr>';
 		echo '<tr><td>';
-			echo str_replace(' ','&nbsp;',$langmessage['repeat_password']);
+			echo str_replace(' ','&nbsp;',htmlspecialchars($langmessage['repeat_password']));
 			echo '</td><td>';
 			echo '<input type="password" name="password1" value="" class="gpinput"/>';
 			echo '</td></tr>';
@@ -504,9 +597,9 @@ class Users extends \gp\special\Base{
 		echo '<tr><td>';
 			echo '</td><td>';
 			echo '<input type="hidden" name="cmd" value="CreateNewUser" />';
-			echo ' <input type="submit" name="aaa" value="'.$langmessage['save'].'" class="gpsubmit"/>';
+			echo ' <input type="submit" name="aaa" value="'.htmlspecialchars($langmessage['save']).'" class="gpsubmit"/>';
 			echo ' <input type="reset" class="gpsubmit"/>';
-			echo ' <input type="submit" name="cmd" value="'.$langmessage['cancel'].'" class="gpcancel"/>';
+			echo ' <input type="submit" name="cmd" value="'.htmlspecialchars($langmessage['cancel']).'" class="gpcancel"/>';
 			echo '</td></tr>';
 
 		echo '</table>';
@@ -521,7 +614,7 @@ class Users extends \gp\special\Base{
 		global $langmessage;
 
 		$algos						= array();
-		if( function_exists('password_hash') ){
+		if(function_exists('password_hash')){
 			$algos['password_hash']		= true;
 			$algos['sha512']			= true;
 		}else{
@@ -530,27 +623,25 @@ class Users extends \gp\special\Base{
 		}
 
 		echo '<tr><td>';
-		echo str_replace(' ','&nbsp;',$langmessage['Password Algorithm']);
+		echo str_replace(' ','&nbsp;',htmlspecialchars($langmessage['Password Algorithm']));
 		echo '</td><td>';
 		echo '<select name="algo" class="gpselect">';
 		foreach($algos as $algo => $avail){
 
 			$attr = '';
-			if( !$avail ){
+			if(!$avail){
 				$attr .= 'disabled';
 			}
-			if( isset($_REQUEST['algo']) && $algo == $_REQUEST['algo'] ){
+			if(isset($_REQUEST['algo']) && $algo === $_REQUEST['algo']){
 				$attr .= ' selected';
 			}
-			echo '<option value="'.$algo.'" '.$attr.'>'.$algo.'</option>';
+			echo '<option value="'.htmlspecialchars($algo).'" '.$attr.'>'.htmlspecialchars($algo).'</option>';
 		}
 		echo '</select>';
 
 		echo ' &nbsp; <span class="sm text-muted">password_hash requires PHP 5.5+</span>';
 
 		echo '</td></tr>';
-
-
 	}
 
 
@@ -558,28 +649,28 @@ class Users extends \gp\special\Base{
 	 * Display permission options
 	 *
 	 */
-	public function DetailsForm( $values=array() ){
+	public function DetailsForm($values=array()){
 		global $langmessage, $gp_titles;
 
-		$values += array('granted'=>'','email'=>'');
+		$values = array_merge(array('granted'=>'','email'=>''), $values);
 
-		//email address
+		// Email address
 		echo '<tr><td>';
-		echo str_replace(' ','&nbsp;',$langmessage['email_address']);
+		echo str_replace(' ','&nbsp;',htmlspecialchars($langmessage['email_address']));
 		echo '</td><td>';
 		echo '<input type="text" name="email" value="'.htmlspecialchars($values['email']).'" class="gpinput"/>';
 		echo ' - DMARC compliant address !</td></tr>';
 
 
-		//admin permissions
+		// Admin permissions
 		echo '<tr><td>';
-		echo str_replace(' ','&nbsp;',$langmessage['grant_usage']);
+		echo str_replace(' ','&nbsp;',htmlspecialchars($langmessage['grant_usage']));
 		echo '</td><td class="all_checkboxes">';
 
 		$all = false;
 		$current = $values['granted'];
 		$checked = '';
-		if( $current == 'all' ){
+		if($current === 'all'){
 			$all = true;
 			$checked = ' checked="checked" ';
 		}else{
@@ -588,41 +679,41 @@ class Users extends \gp\special\Base{
 
 		echo '<p><label class="select_all">';
 		echo '<input type="checkbox" class="select_all" name="grant_all" value="all" '.$checked.'/>';
-		echo $langmessage['All'];
+		echo htmlspecialchars($langmessage['All']);
 		echo '</label></p>';
 
 		foreach($this->possible_permissions as $permission => $label){
 			$checked = '';
-			if( $all ){
+			if($all){
 				$checked = ' checked="checked" ';
-			}elseif( strpos($current,','.$permission.',') !== false ){
+			}elseif(strpos($current,','.$permission.',') !== false){
 				$checked = ' checked="checked" ';
 			}
 
 			echo '<label class="all_checkbox">';
-			echo '<input type="checkbox" name="grant[]" value="'.$permission.'" '.$checked.'/>';
+			echo '<input type="checkbox" name="grant[]" value="'.htmlspecialchars($permission).'" '.$checked.'/>';
 			$title_attr = trim(strip_tags($label));
 			preg_match('/title="(.*?)".*?>/si', $label, $matches); 
-			if( isset($matches[1]) ){
-				$title_attr = $matches[1].': '.$title_attr;
+			if(isset($matches[1])){
+				$title_attr = htmlspecialchars($matches[1]).': '.$title_attr;
 			}
-			echo '<span title="'.$title_attr.'">'.$label.'</span>';
+			echo '<span title="'.htmlspecialchars($title_attr).'">'.htmlspecialchars($label).'</span>';
 			echo '</label> ';
 		}
 
 		echo '</td></tr>';
 
-		//file editing
+		// File editing
 		echo '<tr><td>';
-		echo $langmessage['file_editing'];
+		echo htmlspecialchars($langmessage['file_editing']);
 		echo '</td><td class="all_checkboxes">';
 
 		$editing_values = $values['editing'];
-		$all = ($editing_values == 'all');
+		$all = ($editing_values === 'all');
 		$checked = $all ? ' checked="checked" ' : '';
 		echo '<p><label class="select_all">';
 		echo '<input type="checkbox" class="select_all" name="editing_all" value="all" '.$checked.'/> ';
-		echo $langmessage['All'];
+		echo htmlspecialchars($langmessage['All']);
 		echo '</label></p>';
 
 		echo '<div style="max-height:168px;overflow:auto;">';
@@ -637,21 +728,20 @@ class Users extends \gp\special\Base{
 		foreach($ordered as $index => $label){
 			$label = strip_tags($label);
 			$checked = '';
-			if( $all ){
+			if($all){
 				$checked = ' checked="checked" ';
-			}elseif( strpos($editing_values,','.$index.',') !== false ){
+			}elseif(strpos($editing_values,','.$index.',') !== false){
 				$checked = ' checked="checked" ';
 			}
 
 			echo '<label class="all_checkbox">';
-			echo '<input type="checkbox" name="titles[]" value="'.$index.'" '.$checked.'/>';
-			echo '<span title="'.$label.'">'.$label.'</span>';
+			echo '<input type="checkbox" name="titles[]" value="'.htmlspecialchars($index).'" '.$checked.'/>';
+			echo '<span title="'.htmlspecialchars($label).'">'.htmlspecialchars($label).'</span>';
 			echo '</label> ';
 		}
 
 		echo '</div>';
 		echo '</td></tr>';
-
 	}
 
 	/**
@@ -661,12 +751,13 @@ class Users extends \gp\special\Base{
 	public function ChangePass(){
 		global $langmessage;
 
-		$username =& $_REQUEST['username'];
-		if( !isset($this->users[$username]) ){
-			msg($langmessage['OOPS']);
-			return;
-		}
+		$username = isset($_REQUEST['username']) ? (string)$_REQUEST['username'] : '';
+		$username = $this->SanitizeUsername($username);
 
+		if($username === false || !isset($this->users[$username])){
+			msg($langmessage['OOPS']);
+			return false;
+		}
 
 		echo '<form action="'.\gp\tool::GetUrl('Admin/Users').'" method="post">';
 		echo '<input type="hidden" name="cmd" value="resetpass" />';
@@ -674,17 +765,17 @@ class Users extends \gp\special\Base{
 
 		echo '<table class="bordered">';
 		echo '<tr><th colspan="2">';
-			echo $langmessage['change_password'];
+			echo htmlspecialchars($langmessage['change_password']);
 			echo ' - ';
-			echo $username;
+			echo htmlspecialchars($username);
 			echo '</th></tr>';
 		echo '<tr><td>';
-			echo $langmessage['new_password'];
+			echo htmlspecialchars($langmessage['new_password']);
 			echo '</td><td>';
 			echo '<input type="password" name="password" value="" class="gpinput"/>';
 			echo '</td></tr>';
 		echo '<tr><td>';
-			echo str_replace(' ','&nbsp;',$langmessage['repeat_password']);
+			echo str_replace(' ','&nbsp;',htmlspecialchars($langmessage['repeat_password']));
 			echo '</td><td>';
 			echo '<input type="password" name="password1" value="" class="gpinput"/>';
 			echo '</td></tr>';
@@ -693,8 +784,8 @@ class Users extends \gp\special\Base{
 
 		echo '<tr><td>';
 			echo '</td><td>';
-			echo '<input type="submit" name="aaa" value="'.$langmessage['save'].'" class="gpsubmit" />';
-			echo ' <input type="submit" name="cmd" value="'.$langmessage['cancel'].'" class="gpcancel" />';
+			echo '<input type="submit" name="aaa" value="'.htmlspecialchars($langmessage['save']).'" class="gpsubmit" />';
+			echo ' <input type="submit" name="cmd" value="'.htmlspecialchars($langmessage['cancel']).'" class="gpcancel" />';
 			echo '</td></tr>';
 		echo '</table>';
 		echo '</form>';
@@ -707,44 +798,58 @@ class Users extends \gp\special\Base{
 	public function ResetPass(){
 		global $langmessage, $config;
 
-		if( !$this->CheckPasswords() ){
+		if(!$this->CheckPasswords()){
 			return false;
 		}
 
-		$username = $_POST['username'];
-		if( !isset($this->users[$username]) ){
+		$username = isset($_POST['username']) ? (string)$_POST['username'] : '';
+		$username = $this->SanitizeUsername($username);
+
+		if($username === false || !isset($this->users[$username])){
 			msg($langmessage['OOPS']);
 			return false;
 		}
 
-		$this->SetUserPass( $username, $_POST['password']);
+		if(!$this->ValidatePasswordStrength($_POST['password'])){
+			msg('Password must be at least 8 characters long');
+			return false;
+		}
+
+		$this->SetUserPass($username, $_POST['password']);
 
 		return $this->SaveUserFile();
 	}
 
 	/**
 	 * Check the posted passwords
-	 * Make sure they're not empty and the match each other
+	 * Make sure they're not empty and match each other
 	 *
 	 */
 	public function CheckPasswords(){
 		global $langmessage;
 
-		//see also Admin/Users for password checking
-		if( ($_POST['password']=="") || ($_POST['password'] !== $_POST['password1'])  ){
+		if(empty($_POST['password']) || $_POST['password'] !== $_POST['password1']){
 			msg($langmessage['invalid_password']);
 			return false;
 		}
 		return true;
 	}
 
+	/**
+	 * Get users from storage
+	 *
+	 */
 	public function GetUsers(){
 
-		$this->users		= \gp\tool\Files::Get('_site/users');
+		$this->users = \gp\tool\Files::Get('_site/users');
 
-		//fix the editing value
+		if(!is_array($this->users)){
+			$this->users = array();
+		}
+
+		// Fix the editing value
 		foreach($this->users as $username => $userinfo){
-			$userinfo += array('granted'=>'');
+			$userinfo = array_merge(array('granted'=>''), $userinfo);
 			\gp\admin\Tools::EditingValue($userinfo);
 			$this->users[$username] = $userinfo;
 		}
@@ -758,28 +863,27 @@ class Users extends \gp\special\Base{
 	public function RequestedIndexes(){
 		global $langmessage, $gp_titles;
 
-		$_REQUEST		+= array('index'=>'');
-		$indexes		= explode(',',$_REQUEST['index']);
+		$_REQUEST = array_merge(array('index'=>''), $_REQUEST);
+		$indexes = explode(',',$_REQUEST['index']);
 
-		if( empty($indexes) ){
+		if(empty($indexes)){
 			msg($langmessage['OOPS'].' Invalid Title (1)');
-			return;
+			return false;
 		}
 
 		$cleaned = array();
 		foreach($indexes as $index){
-			if( !isset($gp_titles[$index]) ){
+			if(!isset($gp_titles[$index])){
 				continue;
 			}
 			$cleaned[] = $index;
 		}
 
-		if( empty($cleaned) ){
+		if(empty($cleaned)){
 			msg($langmessage['OOPS'].' Invalid Title (2)');
-			return;
+			return false;
 		}
 
 		return $cleaned;
 	}
-
 }
