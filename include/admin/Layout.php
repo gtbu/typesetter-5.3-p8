@@ -1467,7 +1467,7 @@ class Layout extends \gp\admin\Addon\Install{
 		global $dataDir;
 
 		$dir		= $dataDir . $dir_rel;
-		$folders	= \gp\tool\Files::readDir($dir, 1);
+		$folders	= \gp\tool\Files::ReadDir($dir, 1);
 
 		foreach($folders as $folder){
 
@@ -1610,7 +1610,7 @@ class Layout extends \gp\admin\Addon\Install{
 	 *
 	 */
 	public function GetThemeColors($dir){
-		$subdirs	= \gp\tool\Files::readDir($dir, 1);
+		$subdirs	= \gp\tool\Files::ReadDir($dir, 1);
 		$colors		= [];
 
 		asort($subdirs);

@@ -816,7 +816,7 @@ namespace gp\admin{
 
 			foreach( $draft_types as $type => $dir ){
 
-				$folders	= \gp\tool\Files::readDir($dir,1);
+				$folders	= \gp\tool\Files::ReadDir($dir,1);
 
 				foreach( $folders as $folder ){
 

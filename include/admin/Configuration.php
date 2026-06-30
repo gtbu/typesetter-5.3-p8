@@ -233,7 +233,7 @@ class Configuration extends \gp\special\Base{
 
 		$langDir = $dataDir.'/include/thirdparty/ckeditor/lang'; //ckeditor
 
-		$possible['langeditor'] = \gp\tool\Files::readDir($langDir,'js');
+		$possible['langeditor'] = \gp\tool\Files::ReadDir($langDir,'js');
 		unset($possible['langeditor']['_languages']);
 		$possible['langeditor']['inherit'] = ' '.$langmessage['default']; //want it to be the first in the list
 		asort($possible['langeditor']);

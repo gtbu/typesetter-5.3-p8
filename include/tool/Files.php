@@ -47,29 +47,38 @@ namespace gp\tool{
 		 * @param string $path
 		 * @return string
 		 */
-		public static function Canonicalize($path) {
+		public static function canonicalizePath(string $path): string
+         {
+         $path = \gp\tool\Editing::Sanitize($path);
+         $path = str_replace('\\', '/', $path);
 
-			$path			= \gp\tool\Editing::Sanitize($path);
-			$path			= str_replace( '\\', '/', $path);
-			$start_slash	= $path[0] == '/' ? '/' : '';
-			$parts			= explode('/', $path);
-			$parts			= array_filter($parts);
-			$absolutes		= array();
+         if ($path === '') {
+            return '';
+         }
 
-			foreach( $parts as $part ){
-				if( '.' == $part ){
-					continue;
-				}
-				if( '..' == $part ){
-					array_pop($absolutes);
-				}else{
-					$absolutes[] = $part;
-				}
-			}
-			return $start_slash . implode('/', $absolutes);
-		}
+         $isAbsolute = str_starts_with($path, '/');
+         $parts = explode('/', $path);
+         $absolutes = [];
 
+         foreach ($parts as $part) {
+           if ($part === '' || $part === '.') {
+            continue;
+           }
 
+           if ($part === '..') {
+            if (!empty($absolutes) && end($absolutes) !== '..') {
+                array_pop($absolutes);
+            } elseif (!$isAbsolute) {
+                $absolutes[] = '..';
+            }
+            continue;
+         }
+
+            $absolutes[] = $part;
+         }
+
+            return ($isAbsolute ? '/' : '') . implode('/', $absolutes);
+        }
 
 		/**
 		 * Get array from data file
