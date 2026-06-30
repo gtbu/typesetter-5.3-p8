@@ -47,38 +47,50 @@ namespace gp\tool{
 		 * @param string $path
 		 * @return string
 		 */
-		public static function canonicalizePath(string $path): string
-         {
+	    public static function canonicalizePath(string $path): string
+{
          $path = \gp\tool\Editing::Sanitize($path);
          $path = str_replace('\\', '/', $path);
 
          if ($path === '') {
-            return '';
+          return '';
          }
 
-         $isAbsolute = str_starts_with($path, '/');
-         $parts = explode('/', $path);
-         $absolutes = [];
+        //  Extract Windows drive letter if present (e.g., "C:")
+        $drive = '';
+        if (preg_match('/^[a-zA-Z]:/', $path, $matches)) {
+        $drive = $matches[0];
+        $path = substr($path, 2); // Remove the "C:" from the string temporarily
+        }
 
-         foreach ($parts as $part) {
-           if ($part === '' || $part === '.') {
+        // check if it's an absolute path
+        $isAbsolute = str_starts_with($path, '/');
+        $parts = explode('/', $path);
+        $absolutes = [];
+
+        foreach ($parts as $part) {
+        if ($part === '' || $part === '.') {
             continue;
-           }
+        }
 
-           if ($part === '..') {
+        if ($part === '..') {
             if (!empty($absolutes) && end($absolutes) !== '..') {
                 array_pop($absolutes);
             } elseif (!$isAbsolute) {
+                // Only allow traversing "above" the starting point if it's a relative path
                 $absolutes[] = '..';
             }
             continue;
-         }
-
-            $absolutes[] = $part;
-         }
-
-            return ($isAbsolute ? '/' : '') . implode('/', $absolutes);
         }
+
+        $absolutes[] = $part;
+        }
+
+        // Reconstruct the path, adding the drive letter back
+        return $drive . ($isAbsolute ? '/' : '') . implode('/', $absolutes);
+        }
+
+        
 
 		/**
 		 * Get array from data file
