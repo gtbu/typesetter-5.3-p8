@@ -2,16 +2,14 @@
 
 namespace gp\tool\Output;
 
-require_once $dataDir . '/include/thirdparty/ScssPhp/autoload_2.10.php'; 
-
+/* require_once $dataDir . '/include/thirdparty/ScssPhp/ScssPhp' . '/scss.inc.php'; */
 use ScssPhp\ScssPhp\Compiler;
-
 use function ScssPhp\ScssPhp\getIncludedFiles;
 use ScssPhp\ScssPhp\Parser;
 use ScssPhp\ScssPhp\OutputStyle;
 use ScssPhp\ScssPhp\Formatter;
 use ScssPhp\ScssPhp\SourceMap\SourceMapGenerator;
-use ScssPhp\ScssPhp\Logger\QuietLogger;
+
 
 class Css{
 
@@ -202,12 +200,7 @@ class Css{
 
 			}
 
-     	// $logStream = fopen('php://stderr', 'w'); // oder 'php://output'
-        // $compiler->setLogger(new \ScssPhp\ScssPhp\Logger\StreamLogger($logStream, true));
-		 $compiler->setLogger(new QuietLogger());
-		 
 		$tmpcomp = $compiler->compileString(implode("\n", $combined));
-		
 			$compiled = $tmpcomp->getCss();		
 
 		}catch( \Exception $e){
