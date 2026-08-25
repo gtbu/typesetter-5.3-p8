@@ -1,12 +1,12 @@
 Features
 
-* php 8.1 - 8.4
+* php 8.1 - 8.5
 * Jquery UI 14.1 and jquery 3.6.3
 * Ckeditor 4.22 with skin-switch
-* Scssphp 1.12 compiler with Bootstrap 5.3 support
+* Scssphp 2.1 compiler with Bootstrap 5.3 support
 * Less 3.13.1 compiler
 * Elfinder 2.1.62
-* PhpMailer 6.9.1 and Google Recaptcha
+* PhpMailer 7.1.1 and Google Recaptcha
 * Local fonts under themes/Bootstrap4/assets
 * Encrypted login
 
