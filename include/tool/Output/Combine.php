@@ -568,6 +568,10 @@ class Combine{
 		'colorpicker-css' => [
 			'file'			=> '/include/thirdparty/bootstrap-colorpicker/bootstrap-colorpicker.min.css',
 		],
+		
+		'bt5-icon-css' => [
+			'file'			=> '/include/thirdparty/Bootstrap5/fonts/bootstrap-icons.css',
+		],
 
 		// jQuery.touch (touch gestures for jQuery 1.9 and 2.x)
 		'jquery-touch' => [
