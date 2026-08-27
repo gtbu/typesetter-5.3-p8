@@ -40,11 +40,15 @@ class Installer{
 		\gp\tool::GetLangFile('main.inc',$this->lang);
 
 		// installation checks
+		
 		$this->CheckDataFolder();
 		$this->CheckPHPVersion();
 		$this->CheckEnv();
 		$this->CheckMemory();
 		$this->CheckIntl();
+		$this->CheckSqlite();
+        $this->CheckHostname();	
+        $this->CheckSockets();		
 		$this->CheckImages();
 		$this->CheckArchives();
 		$this->CheckPath();
@@ -271,7 +275,7 @@ class Installer{
 	private function CheckMemory(){
 
 		$checkValue 	= ini_get('memory_limit');
-		$expected		= '16M+ or Adjustable';
+		$expected		= '100M+ or Adjustable';
 		$checking		= '<a href="https://php.net/manual/ini.core.php#ini.memory-limit" target="_blank">Memory Limit</a>';
 
 
@@ -355,6 +359,58 @@ class Installer{
 			$this->SetStatus($checking, 2, 'Installed');
 		}else{
 			$this->SetStatus($checking, 0, 'Not Installed', 'Required');
+		}
+	}
+
+
+    /**
+	 * Check for SQLite3 extension
+	 *
+	 */
+    public function CheckSqlite(){
+		global $langmessage;
+
+		$checking = '<a href="https://www.php.net/manual/en/book.sqlite3.php" target="_blank">SQLite3 Extension</a>';
+
+		if( extension_loaded('sqlite3') ){
+			// Status 2 = Passed (Green)
+			$this->SetStatus($checking, 2, 'Installed');
+		} else{
+			// Status 1 = Passed with partial/optional availability (Orange, but DOES NOT block installation)
+			$this->SetStatus($checking, 1, 'Not Installed', 'Optional (Required by some plugins)');
+		}
+	}
+	
+	
+	/**
+	 * Check and display the Server Hostname (Informational only)
+	 *
+	 */
+	public function CheckHostname(){
+		// 1. Fetch the server's hostname or fallback to server IP address
+		$hostname = gethostname() ?: ($_SERVER['SERVER_NAME'] ?: $_SERVER['SERVER_ADDR']);
+
+		// 2. Render it cleanly inside the dashboard without blocking installation (Status 2)
+		$this->SetStatus('Server Hostname', 2, $hostname, 'Detected');
+	}
+
+
+    /**
+	 * Check for Sockets availability (Informational only)
+	 *
+	 */
+	public function CheckSockets(){
+		$checking = '<a href="https://php.net" target="_blank">Sockets support</a>';
+
+		// Prüft ob die Extension geladen ist UND fsockopen nicht durch disable_functions blockiert wird
+		$sockets_active = extension_loaded('sockets') || function_exists('fsockopen');
+
+		if( $sockets_active ){
+			// Status 2 = Aktiviert (Grün)
+			$this->SetStatus($checking, 2, 'Enabled');
+		} else{
+			// Status 1 = Deaktiviert (Orange, blockiert die Installation NICHT)
+			$this->SetStatus($checking, 1, 'Disabled / Blocked', 'Optional (e.g. blocked on bplaced free)');
 		}
 	}
 	
