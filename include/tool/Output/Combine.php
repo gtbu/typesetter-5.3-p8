@@ -531,7 +531,7 @@ class Combine{
 			'file'			=> '/include/thirdparty/Bootstrap5/fonts/bootstrap-icons.min.css',
 			'label'			=> 'Bootstrap Icons',
 			'cdn'			=> [
-				'CloudFlare'   => 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.5/font/bootstrap-icons.min.css',
+				'CloudFlare'   => 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.13.1/font/bootstrap-icons.min.css',
 			],
 		],
 
