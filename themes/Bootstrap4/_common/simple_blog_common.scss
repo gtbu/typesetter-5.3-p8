@@ -33,7 +33,7 @@
 
 #gpx_content > .blog_post + .category_container {
 	padding-top: 0;
-	margin-top: ($spacer * -1);
+	margin-top: ($spacer * 0.1);  
 }
 
 #gpx_content > .blog_nav_links,
@@ -44,6 +44,7 @@
 			display: inline-block;
 			margin-right: ($spacer / 2);
 			font-family: FontAwesome;
+			color: inherit;
 		}
 	}
 }
