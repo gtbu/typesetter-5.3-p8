@@ -68,13 +68,12 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
         throw new InvalidArgumentException(sprintf('Invalid timezone: "%s"', $targetTimezoneName), 0, $e);
     }
 
-    // 1. Resolve timestamp safely (unterstützt int, numerische Strings, Datums-Strings, null)
+    // 1. Resolve timestamp strictly with DateTimeImmutable
     try {
-        if ($timestamp === null || $timestamp === '') {
+        if ($timestamp === null) {
             $dateTime = new DateTimeImmutable('now', $targetTimezone);
-        } elseif (is_int($timestamp) || (is_string($timestamp) && ctype_digit(ltrim($timestamp, '-')))) {
-            // Reiner Unix-Timestamp (int oder numerischer String wie '1625097600')
-            $dateTime = (new DateTimeImmutable('@' . (int)$timestamp))->setTimezone($targetTimezone);
+        } elseif (is_int($timestamp)) {
+            $dateTime = (new DateTimeImmutable('@' . $timestamp))->setTimezone($targetTimezone);
         } elseif (is_string($timestamp)) {
             $dateTime = new DateTimeImmutable($timestamp, $targetTimezone);
             if ($timezoneWasProvided) {
@@ -114,6 +113,7 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
         return $formatters[$cacheKey];
     };
 
+    // Helper wrapper to handle formatting failures explicitly
     $formatIntl = static function (IntlDateFormatter $formatter, DateTimeInterface $date): string {
         $value = $formatter->format($date);
         if ($value === false) {
@@ -130,19 +130,8 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
         if ($format[$i] === '%') {
             $i++;
             if ($i >= $length) {
-                $result .= '%';
+                $result .= '%'; // Preserve trailing %
                 break;
-            }
-
-            // Modifikatoren wie "-" (keine führenden Nullen) oder "_" (Leerzeichen) abfangen
-            $modifier = '';
-            if ($format[$i] === '-' || $format[$i] === '_' || $format[$i] === '0') {
-                $modifier = $format[$i];
-                $i++;
-                if ($i >= $length) {
-                    $result .= '%' . $modifier;
-                    break;
-                }
             }
 
             $specifier = $format[$i];
@@ -159,28 +148,18 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
                 case 'X': $result .= $formatIntl($getIntl('', IntlDateFormatter::NONE, IntlDateFormatter::MEDIUM), $dateTime); break;
                 case 'r': $result .= $formatIntl($getIntl('hh:mm:ss a'), $dateTime); break;
 
-                // Standard Numeric Date & Time Formats (mit Beachtung von Modifikatoren wie %-m, %-d)
+                // Standard Numeric Date & Time Formats
                 case 'C': $result .= sprintf('%02d', (int)floor((int)$dateTime->format('Y') / 100)); break;
-                case 'd':
-                    $result .= ($modifier === '-') ? $dateTime->format('j') : $dateTime->format('d');
-                    break;
+                case 'd': $result .= $dateTime->format('d'); break;
                 case 'D': $result .= $dateTime->format('m/d/y'); break;
-                case 'e':
-                    $result .= ($modifier === '-') ? $dateTime->format('j') : sprintf('% 2d', (int)$dateTime->format('j'));
-                    break;
+                case 'e': $result .= sprintf('% 2d', (int)$dateTime->format('j')); break;
                 case 'F': $result .= $dateTime->format('Y-m-d'); break;
-                case 'H':
-                    $result .= ($modifier === '-') ? $dateTime->format('G') : $dateTime->format('H');
-                    break;
-                case 'I':
-                    $result .= ($modifier === '-') ? $dateTime->format('g') : $dateTime->format('h');
-                    break;
+                case 'H': $result .= $dateTime->format('H'); break;
+                case 'I': $result .= $dateTime->format('h'); break;
                 case 'j': $result .= sprintf('%03d', (int)$dateTime->format('z') + 1); break;
                 case 'k': $result .= sprintf('% 2d', (int)$dateTime->format('G')); break;
                 case 'l': $result .= sprintf('% 2d', (int)$dateTime->format('g')); break;
-                case 'm':
-                    $result .= ($modifier === '-') ? $dateTime->format('n') : $dateTime->format('m');
-                    break;
+                case 'm': $result .= $dateTime->format('m'); break;
                 case 'M': $result .= $dateTime->format('i'); break;
                 case 'p': $result .= mb_strtoupper($formatIntl($getIntl('a'), $dateTime), 'UTF-8'); break;
                 case 'P': $result .= mb_strtolower($formatIntl($getIntl('a'), $dateTime), 'UTF-8'); break;
@@ -200,16 +179,19 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
                 case 'G': $result .= $dateTime->format('o'); break;
                 case 'V': $result .= $dateTime->format('W'); break;
 
+                // C-Library Semantics for Legacy Weeks (%U and %W)
                 case 'U':
                 case 'W':
                     $year = (int)$dateTime->format('Y');
-                    $dayOfYear = (int)$dateTime->format('z');
+                    $dayOfYear = (int)$dateTime->format('z'); // 0-indexed (0..365)
                     $jan1 = $dateTime->setDate($year, 1, 1);
-                    $jan1DayOfWeek = (int)$jan1->format('w');
+                    $jan1DayOfWeek = (int)$jan1->format('w'); // 0 (Sun) to 6 (Sat)
 
                     if ($specifier === 'U') {
+                        // First Sunday is week 01. Days prior are week 00.
                         $daysToFirstWeekStart = (7 - $jan1DayOfWeek) % 7;
-                    } else {
+                    } else { // 'W'
+                        // First Monday is week 01. Days prior are week 00.
                         $jan1IsoDay = $jan1DayOfWeek === 0 ? 7 : $jan1DayOfWeek;
                         $daysToFirstWeekStart = (8 - $jan1IsoDay) % 7;
                     }
@@ -221,12 +203,14 @@ function strftime(string $format, int|string|DateTimeInterface|null $timestamp =
                     $result .= sprintf('%02d', $week);
                     break;
 
+                // Escape Sequences & Unknown Formats
                 case 'n': $result .= "\n"; break;
                 case 't': $result .= "\t"; break;
                 case '%': $result .= '%'; break;
 
                 default:
-                    $result .= '%' . $modifier . $specifier;
+                    // Unknown specifiers are preserved as literal strings (e.g., %q -> %q)
+                    $result .= '%' . $specifier;
                     break;
             }
         } else {
