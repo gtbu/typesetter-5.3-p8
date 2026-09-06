@@ -119,19 +119,7 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 						gpOutput::Get(); // empty 'area slot' e.g. to add a breadcrumb nav via Layout Editor
 						$page->GetContent(); // get the page content
 						// #gpAfterContent area outputs here
-
-						// Simple Blog Gadgets, if installed
-						if( gpOutput::GadgetExists('Simple_Blog') ){
-							gpOutput::GetArea('Simple-Blog-Gadget', ''); // as defined in settings.php
-						}
-
-						if( gpOutput::GadgetExists('Simple_Blog_Categories') ){
-							gpOutput::GetArea('Simple-Blog-Categories-Gadget', ''); // as defined in settings.php
-						}
-
-						if( gpOutput::GadgetExists('Simple_Blog_Archives') ){
-							gpOutput::GetArea('Simple-Blog-Archives-Gadget', ''); // as defined in settings.php
-						}
+						
 					?>
 				</div><!-- /.container-->
 			</main><!-- /.main-content -->

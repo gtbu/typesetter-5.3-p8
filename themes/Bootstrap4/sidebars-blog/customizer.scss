@@ -1,0 +1,244 @@
+//
+// Bootstrap 4 - Typesetter CMS theme
+//
+// 'sidebars' layout
+// process customizer variables
+//
+
+
+// Variable default values
+// Do not change or remove them here
+// Use customizer in Layout Editor instead
+//
+// for theme developers: all non-bootstrap variables
+// need to have defined !default values.
+
+$navbar_expand_breakpoint:					lg !default;
+
+$content_color:								#212529 !default;
+$content_bg:								#ffffff !default;
+$content_link_color:						#1a73e8 !default;
+
+$h1_color:									#212529 !default;
+$h2_color:									#212529 !default;
+$h3_color:									#212529 !default;
+$h4_color:									#212529 !default;
+$h5_color:									#212529 !default;
+$h6_color:									#212529 !default;
+
+$sidebar-expand-breakpoint:					lg !default;
+
+$sidebar_left_width:						232px !default;
+$sidebar_left_color:						#212529 !default;
+$sidebar_left_headings_color:				#212529 !default;
+$sidebar_left_link_color:					#1a73e8 !default;
+$sidebar_left_bg:							#f8f9fa !default;
+$sidebar_left_border_color:					#dee2e6 !default;
+
+$sidebar_right_width:						232px !default;
+$sidebar_right_color:						#212529 !default;
+$sidebar_right_headings_color:				#212529 !default;
+$sidebar_right_link_color:					#1a73e8 !default;
+$sidebar_right_bg:							#ffffff !default;
+$sidebar_right_border_color:				#dee2e6 !default;
+
+// css variable defaults
+// we use the html scope here
+// customizer will use the global :root scope
+// which has a higher specificity than html
+html {
+	--navbar_expand_breakpoint:				#{$navbar_expand_breakpoint};
+
+	--content_color:						#{$content_color};
+	--content_bg:							#{$content_bg};
+	--content_link_color:					#{$content_link_color};
+
+	--h1_color:								#{$h1_color};
+	--h2_color:								#{$h2_color};
+	--h3_color:								#{$h3_color};
+	--h4_color:								#{$h4_color};
+	--h5_color:								#{$h5_color};
+	--h6_color:								#{$h6_color};
+
+	--sidebar_left_width:					#{$sidebar_left_width};
+	--sidebar_left_color:					#{$sidebar_left_color};
+	--sidebar_left_headings_color:			#{$sidebar_left_headings_color};
+	--sidebar_left_link_color:				#{$sidebar_left_link_color};
+	--sidebar_left_bg:						#{$sidebar_left_bg};
+	--sidebar_left_border_color:			#{$sidebar_left_border_color};
+
+	--sidebar_right_width:					#{$sidebar_right_width};
+	--sidebar_right_color:					#{$sidebar_right_color};
+	--sidebar_right_headings_color:			#{$sidebar_right_headings_color};
+	--sidebar_right_link_color:				#{$sidebar_right_link_color};
+	--sidebar_right_bg:						#{$sidebar_right_bg};
+	--sidebar_right_border_color:			#{$sidebar_right_border_color};
+}
+
+
+// typography
+@import '../_common/customizer_common_typography.scss';
+
+
+// headers
+@import '../_common/customizer_common_headers.scss';
+
+
+// main menu
+@import '../_common/customizer_common_menu.scss';
+
+
+// search
+@import '../_common/customizer_common_search.scss';
+
+
+// main content
+main.main-content {
+	color: $content_color;
+	background-color: $content_bg;
+
+	a:not(.btn) {
+		color: $content_link_color;
+		&:hover,
+		&:focus {
+			color: darken($content_link_color, 10%);
+		}
+	}
+
+	h1, .h1 { color: $h1_color;	}
+	h2, .h2 { color: $h2_color;	}
+	h3, .h3 { color: $h3_color;	}
+	h4, .h4 { color: $h4_color;	}
+	h5, .h5 { color: $h5_color;	}
+	h6, .h6 { color: $h6_color;	}
+
+
+	[class*="text-"] {
+		h1, .h1,
+		h2, .h2,
+		h3, .h3,
+		h4, .h4,
+		h5, .h5,
+		h6, .h6,
+		.simple_blog_gadget_label {
+			color: inherit;
+		}
+	}
+}
+
+
+// sidebars
+$sidebar_left_border:		$border-width solid $sidebar_left_border_color;
+$sidebar_right_border:		$border-width solid $sidebar_right_border_color;
+
+.sidebar-left {
+	color: $sidebar_left_color;
+	background-color: $sidebar_left_bg;
+	border-top: $sidebar_left_border;
+	a:not(.btn) {
+		color: $sidebar_left_link_color;
+		&:hover,
+		&:focus {
+			color: darken($sidebar_left_link_color, 10%);
+		}
+	}
+	h1, .h1,
+	h2, .h2,
+	h3, .h3,
+	h4, .h4,
+	h5, .h5,
+	h6, .h6 {
+		color: $sidebar_left_headings_color;
+	}
+	.sidebar-container {
+		> .GPAREA:not(:empty) {
+			padding: $spacer;
+			border-bottom: $sidebar_left_border;
+		}
+		.GPAREA.gpMenu {
+			padding: 0;
+			border-bottom: none;
+			a:not(.btn) {
+				color: $sidebar_left_color;
+				&:hover,
+				&:focus {
+					color: $sidebar_left_color;
+				}
+			}
+		}
+	}
+	.nav-stacked-first-level:not(.empty_menu) {
+		border-bottom: $sidebar_left_border;
+	}
+}
+
+.sidebar-right {
+	color: $sidebar_right_color;
+	background-color: $sidebar_right_bg;
+	border-top: $sidebar_right_border;
+	a:not(.btn) {
+		color: $sidebar_right_link_color;
+		&:hover,
+		&:focus {
+			color: darken($sidebar_right_link_color, 10%);
+		}
+	}
+	h1, .h1,
+	h2, .h2,
+	h3, .h3,
+	h4, .h4,
+	h5, .h5,
+	h6, .h6 {
+		color: $sidebar_right_headings_color;
+	}
+	.sidebar-container {
+		> .GPAREA:not(:empty) {
+			padding: $spacer;
+			border-bottom: $sidebar_right_border;
+		}
+		.GPAREA.gpMenu {
+			padding: 0;
+			border-bottom: none;
+			a:not(.btn) {
+				color: $sidebar_right_color;
+				&:hover,
+				&:focus {
+					color: $sidebar_right_color;
+				}
+			}
+		}
+	}
+	.nav-stacked-first-level:not(.empty_menu) {
+		border-bottom: $sidebar_right_border;
+	}
+}
+
+@include media-breakpoint-up($sidebar-expand-breakpoint) {
+	.sidebar-left {
+		width: $sidebar_left_width;
+		@include vp-order(1);
+		border-top: none;
+		border-right: $sidebar_left_border;
+		.sidebar-container {
+			left: 0;
+		}
+	}
+	.sidebar-right {
+		width: $sidebar_right_width;
+		border-top: none;
+		border-left: $sidebar_right_border;
+		.sidebar-container {
+			right: 0;
+		}
+	}
+	.sidebar-sticky {
+		.sidebar-container {
+			position: -webkit-sticky;
+			position: sticky;
+			top: 0;
+			bottom: 0;
+		}
+	}
+}
+
+// this layout has no footer

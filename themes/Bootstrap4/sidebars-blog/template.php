@@ -164,6 +164,14 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 							gpOutput::GetArea('Search-Gadget', ''); // as defined in settings.php
 							gpOutput::Get('CustomMenu', 1, 4, 1, 1); // 2nd-level+ links
 
+							// Simple Blog Gadgets, if installed
+							if( gpOutput::GadgetExists('Simple_Blog_Categories') ){
+								gpOutput::GetArea('Simple-Blog-Categories-Gadget', ''); // as defined in settings.php
+							}
+							if( gpOutput::GadgetExists('Simple_Blog_Archives') ){
+								gpOutput::GetArea('Simple-Blog-Archives-Gadget', ''); // as defined in settings.php
+							}
+
 							gpOutput::GetArea('Admin-Link-Area', ''); // as defined in settings.php
 						?>
 					</div><!-- /.sidebar-container -->
@@ -177,10 +185,18 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 						<?php
 							gpOutput::Get('Extra', 'Side_Menu');
 
-							// Simple Blog Main Gadges, if installed
-							if( gpOutput::GadgetExists('Simple_Blog') ){
-								gpOutput::GetArea('Simple-Blog-Gadget', ''); // as defined in settings.php
-							}
+							// Simple Blog Gadgets, if installed
+						if( gpOutput::GadgetExists('Simple_Blog') ){
+							gpOutput::GetArea('Simple-Blog-Gadget', ''); // as defined in settings.php
+						}
+
+						if( gpOutput::GadgetExists('Simple_Blog_Categories') ){
+							gpOutput::GetArea('Simple-Blog-Categories-Gadget', ''); // as defined in settings.php
+						}
+
+						if( gpOutput::GadgetExists('Simple_Blog_Archives') ){
+							gpOutput::GetArea('Simple-Blog-Archives-Gadget', ''); // as defined in settings.php
+						}
 						?>
 					</div><!-- /.sidebar-container -->
 				</aside><!-- /.sidebar-right -->

@@ -22,6 +22,10 @@
 	}
 }
 
+#gpx_content > .blog_post:first-of-type{ 
+padding-top: ($grid-gutter-width / 4);
+padding-left: ($grid-gutter-width / 4);}
+
 // .blog_nav_links only appears once per page 
 // so we need to overrule the :first-of-type
 #gpx_content > p.blog_nav_links:first-of-type {
