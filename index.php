@@ -13,7 +13,7 @@ if( false ){
 	<title>Error: PHP is not running</title>
 	</head>
 	<body>
-	<h1><a href="https://www.typesettercms.com/">Typesetter CMS</a></h1>
+	<h1><a href="https://github.com/gtbu/typesetter-5.3-p8/">Typesetter CMS</a></h1>
 	<h2>Error: PHP is not running</h2>
 	<p>Typesetter requires that your web server is running PHP. Your server does not have PHP installed, or PHP is turned off.</p>
 	</body>

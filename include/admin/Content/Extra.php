@@ -157,7 +157,7 @@ class Extra extends \gp\Page\Edit{
 		$new		= $dataDir . '/data/_extra/' . $title . '/page.php';
 
 
-		if( is_dir($legacy) && \gp\tool\Files::Exists($new) ){ //is_dir() used to prevent open_basedir notice http://www.typesettercms.com/Forum?show=t2110
+		if( is_dir($legacy) && \gp\tool\Files::Exists($new) ){ 
 			return $title;
 		}
 

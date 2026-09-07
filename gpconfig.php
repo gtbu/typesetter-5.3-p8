@@ -130,7 +130,7 @@ define('gp_unique_addons',false);
 
 /**
  * service_provider_id
- * For typesettercms.com/Providers
+ * deprecated - old
  * Add your service provider id for tracking and to increase service provider activity level
  * Defaults to false
  */

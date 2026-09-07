@@ -15,7 +15,7 @@ Features
 <p align="center">Open source CMS written in PHP focused on ease of use with true WYSIWYG editing and flat-file storage.<br/><br/></p>
 
 
-* [Typesetter Home](https://www.typesettercms.com) - now closed
+* [Typesetter Home] - now  https://github.com/gtbu
 * [Typesetter 5.3 Wiki](https://github.com/gtbu/typesetter-5.3-p8/wiki) with more detailed instructions !
 
 

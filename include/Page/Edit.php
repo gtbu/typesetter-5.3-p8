@@ -1045,7 +1045,7 @@ class Edit extends \gp\Page{
 		 * This is a grown structure and we apologize that it is so messy
 		 *
 		 * For handling more complex new sections and even multi-level-nested section combos see e.g.
-		 * 	the SliderFactory plugin (https://www.typesettercms.com/Plugins/310_Slider_Factory)
+		 * 	the SliderFactory plugin (https://github.com/gtbu/Online-Plugins_Slider_Factory)
 		 *
 		 */
 		$links = \gp\tool\Plugins::Filter('NewSections', [$links]);

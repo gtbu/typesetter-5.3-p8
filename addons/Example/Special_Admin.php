@@ -18,7 +18,7 @@ class Special_Admin extends \Addon\Example\Special{
 		echo \gp\tool::Link('Admin_Example','An Example Link');
 		echo '</p>';
 
-		echo '<p>You can download <a href="http://www.typesettercms.com/Special_Addon_Plugins?id=160">a plugin with addtional examples</a> from typesettercms.com </p>';
+		echo '<p>You can download <a href="https://github.com/gtbu/Online-Plugins"> a plugin with addtional examples</a> from github.com/gtbu </p>';
 
 		$this->AutomaticallyLoaded();
 	}

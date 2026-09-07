@@ -4,10 +4,10 @@
 Admin UI plugin that extends Typesetter's gallery editor.
 Current version 1.0 
 
-See also [Typesetter Home](http://www.typesettercms.com), [Typesetter on GitHub](https://github.com/Typesetter/Typesetter)
+See also [Typesetter on GitHub](https://github.com/Typesetter/Typesetter) - [now](https://github.com/gtbu/)
 
 ## Requirements ##
-* Typesetter CMS 5.0+
+* Typesetter CMS 5.2+
 
 ## Current Tweaks ##
 * Tweak 1 - &lsquo;outsources&rsquo; the gallery editor thumbnail area to a separate draggable and resizable box.

@@ -284,7 +284,7 @@ class Remote extends \gp\admin\Addon\Install{
 
 
 	/**
-	 * Link to view search resuls on typesettercms.com
+	 * Link to view search resuls on github.com/gtbu/
 	 *
 	 */
 	public function ViewOnline(){
