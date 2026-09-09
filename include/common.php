@@ -509,7 +509,7 @@ function includeFile($file){
 			$file = 'tool/Image.php';
 			break;
 
-		case 'tool/sessions.php';
+		case 'tool/sessions.php':
 			$file = 'tool/Session.php';
 			break;
 
@@ -545,7 +545,7 @@ function includeFile($file){
 			$file = 'admin/Tools.php';
 			break;
 
-		case 'admin/tool_thumbnails.php';
+		case 'admin/tool_thumbnails.php':
 			$file = 'tool/Image.php';
 			break;
 	}

@@ -512,7 +512,8 @@ namespace gp\tool{
 				return false;
 			}
 
-			imagedestroy($src_img);
+			 // imagedestroy($src_img);
+			 unset($src_img);
 
 			$saved = self::SrcToImage($dst_img,$dest_path,$img_type);
 
@@ -571,7 +572,7 @@ namespace gp\tool{
 
 			@chmod($path, gp_chmod_file);
 
-			imagedestroy($src);
+			unset($src_img);
 			return true;
 		}
 

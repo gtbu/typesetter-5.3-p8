@@ -1113,6 +1113,10 @@ class Classes extends \gp\special\Base{
 			case 'LoadBootstrap4':
 				$loaded_classes = self::Bootstrap4();
 			break;
+			
+			case 'LoadBootstrap5':
+				$loaded_classes = self::Bootstrap5();
+			break;
 
 			default:
 				$loaded_classes = self::GetClasses();
@@ -1194,6 +1198,7 @@ class Classes extends \gp\special\Base{
 		echo		'<option value="LoadDefault">'		. $langmessage['The Default Preset'] . '</option> ';
 		echo		'<option value="LoadBootstrap3">'	. sprintf($langmessage['The Bootstrap Preset'], '3') . '</option> ';
 		echo		'<option value="LoadBootstrap4">'	. sprintf($langmessage['The Bootstrap Preset'], '4') . '</option> ';
+		            '<option value="LoadBootstrap5">'	. sprintf($langmessage['The Bootstrap Preset'], '5') . '</option> ';
 		echo	'</select>';
 
 		echo	'<button type="submit" name="process" value="load" class="gpsubmit">' . $langmessage['Load'] . '</button>';
