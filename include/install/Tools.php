@@ -397,7 +397,7 @@ class Tools{
 		<p>' . CMS_READABLE_DOMAIN . ' has a number of resources to help you do even more.</p>
 		<ul>
 		<li>Find more community developed <a href="' . CMS_DOMAIN . '/Online-Themes" title="' . CMS_NAME . ' Themes" rel="nofollow">themes</a> and <a href="' . CMS_DOMAIN . '/Online-Plugins" title="' . CMS_NAME . ' Plugin" rel="nofollow">plugins</a> to enhance your site.</li>
-		<li>Get help in the <a href="' . CMS_DOMAIN . '/Typesetter5.2/wiki" title="' . CMS_NAME . ' Wiki" rel="nofollow">' . CMS_NAME . ' wiki</a>.</li>
+		<li>Get help in the <a href="' . CMS_DOMAIN . '/Typesetter5.2/wiki" title="' . CMS_NAME . ' the Wiki" rel="nofollow">' . CMS_NAME . ' wiki</a>.</li>
 		</ul>
 
 		</div>
@@ -484,14 +484,10 @@ class Tools{
 
 		//Side_Menu
 		$file		= $destination . '/data/_extra/Side_Menu/page.php';
-		$content	= '<h3>Join the ' . CMS_NAME . ' Community</h3>
-		<p>Visit ' . CMS_READABLE_DOMAIN . ' to access the many <a href="' . CMS_DOMAIN . '/Resources" title="' . CMS_NAME . ' Community Resources" rel="nofollow">available resources</a> to help you get the most out of our CMS.</p>
+		$content	= '<h3>Visit the ' . CMS_NAME . ' Repository</h3>
 		<ul>
-		<li><a href="' . CMS_DOMAIN . '/Themes" title="' . CMS_NAME . ' Themes" rel="nofollow">Download Themes</a></li>
-		<li><a href="' . CMS_DOMAIN . '/Plugins" title="' . CMS_NAME . ' Plugin" rel="nofollow">Download Plugins</a></li>
-		<li><a href="' . CMS_DOMAIN . '/Forum" title="' . CMS_NAME . ' Forum" rel="nofollow">Get Help in the Forum</a></li>
-		<li><a href="' . CMS_DOMAIN . '/Powered_by" title="Sites using ' . CMS_NAME . '" rel="nofollow">Show off Your Site</a></li>
-		<li><a href="' . CMS_DOMAIN . '/Resources" title="' . CMS_NAME . ' Community Resources" rel="nofollow">And Much More...</a></li>
+		<li><a href="' . CMS_DOMAIN . '/typesetter-5.3-p8/wiki" title="' . CMS_NAME . ' Wiki" rel="nofollow">Get Help in Wiki</a></li>
+		<li><a href="' . CMS_DOMAIN . '/Typesetter5-Versions-Themes-Plugins" title="' . CMS_NAME . ' Resources" rel="nofollow"> ...and Much More...</a></li>
 		</ul>
 		<p class="sm">(Edit this content by clicking &quot;Edit&quot;, it&#39;s that easy!)</p>';
 		self::NewExtra($file, $content);

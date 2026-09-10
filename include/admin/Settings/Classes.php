@@ -1198,7 +1198,7 @@ class Classes extends \gp\special\Base{
 		echo		'<option value="LoadDefault">'		. $langmessage['The Default Preset'] . '</option> ';
 		echo		'<option value="LoadBootstrap3">'	. sprintf($langmessage['The Bootstrap Preset'], '3') . '</option> ';
 		echo		'<option value="LoadBootstrap4">'	. sprintf($langmessage['The Bootstrap Preset'], '4') . '</option> ';
-		            '<option value="LoadBootstrap5">'	. sprintf($langmessage['The Bootstrap Preset'], '5') . '</option> ';
+		echo        '<option value="LoadBootstrap5">'	. sprintf($langmessage['The Bootstrap Preset'], '5') . '</option> ';
 		echo	'</select>';
 
 		echo	'<button type="submit" name="process" value="load" class="gpsubmit">' . $langmessage['Load'] . '</button>';
