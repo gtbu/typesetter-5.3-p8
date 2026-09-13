@@ -566,7 +566,7 @@ namespace gp\tool{
 			}
 
 			if( $result === false ){
-				@imagedestroy($src);
+				 unset($src_img);
 				return false;
 			}
 
