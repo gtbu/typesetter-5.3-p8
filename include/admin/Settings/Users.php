@@ -1,5 +1,5 @@
 <?php
-
+//g56
 namespace gp\admin\Settings;
 
 defined('is_running') or die('Not an entry point...');
@@ -112,15 +112,16 @@ class Users extends \gp\special\Base{
 			return false;
 		}
 
-		// Validate and save email
-		if(!empty($_POST['email'])){
-			$email = $this->ValidateEmail($_POST['email']);
+		// Validate and save email. An empty value deliberately removes the address.
+		$email = isset($_POST['email']) ? trim((string)$_POST['email']) : '';
+		if($email !== ''){
+			$email = $this->ValidateEmail($email);
 			if($email === false){
 				msg($langmessage['OOPS']);
 				return false;
 			}
-			$this->users[$username]['email'] = $email;
 		}
+		$this->users[$username]['email'] = $email;
 
 		$this->users[$username]['granted'] = $this->GetPostedPermissions($username);
 		$this->users[$username]['editing'] = $this->GetEditingPermissions();
@@ -134,8 +135,13 @@ class Users extends \gp\special\Base{
 			return false;
 		}
 
-		// Update the user's session file
-		$this->UserFileDetails($username);
+		// Update the user's session file. The user data file may have been saved
+		// successfully even when the session file cannot be updated, so do not
+		// silently report success in that case.
+		if(!$this->UserFileDetails($username)){
+			msg($langmessage['OOPS']);
+			return false;
+		}
 		return true;
 	}
 
@@ -157,6 +163,9 @@ class Users extends \gp\special\Base{
 		}
 
 		$user_info			= $this->users[$username];
+		if(empty($user_info['file_name'])){
+			return false;
+		}
 		$user_file			= $dataDir.'/data/_sessions/'.$user_info['file_name'];
 
 		if($gpAdmin['username'] === $username){
@@ -171,7 +180,13 @@ class Users extends \gp\special\Base{
 
 		$new_info['granted'] = $user_info['granted'];
 		$new_info['editing'] = $user_info['editing'];
-		return \gp\tool\Files::SaveData($user_file,'gpAdmin',$new_info);
+
+		$saved = \gp\tool\Files::SaveData($user_file,'gpAdmin',$new_info);
+		if($saved && $gpAdmin['username'] === $username){
+			// Keep the current request in sync with the newly saved session data.
+			$gpAdmin = $new_info;
+		}
+		return $saved;
 	}
 
 	/**
@@ -283,13 +298,15 @@ class Users extends \gp\special\Base{
 		$_POST = array_merge(array('grant'=>'', 'email'=>''), $_POST);
 
 		// Validate password
-		if(empty($_POST['password']) || ($_POST['password'] !== $_POST['password1'])){
+		$password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+		$password1 = isset($_POST['password1']) ? (string)$_POST['password1'] : '';
+		if($password === '' || $password !== $password1){
 			msg($langmessage['invalid_password']);
 			return false;
 		}
 
 		// Validate password strength
-		if(!$this->ValidatePasswordStrength($_POST['password'])){
+		if(!$this->ValidatePasswordStrength($password)){
 			msg('Password must be at least 8 characters long');
 			return false;
 		}
@@ -308,19 +325,23 @@ class Users extends \gp\special\Base{
 		}
 
 		// Validate and save email
-		if(!empty($_POST['email'])){
-			$email = $this->ValidateEmail($_POST['email']);
+		$email = isset($_POST['email']) ? trim((string)$_POST['email']) : '';
+		if($email !== ''){
+			$email = $this->ValidateEmail($email);
 			if($email === false){
 				msg($langmessage['OOPS']);
 				return false;
 			}
-			$this->users[$newname]['email'] = $email;
 		}
 
+		$this->users[$newname]['email'] = $email;
 		$this->users[$newname]['granted']	= $this->GetPostedPermissions($newname);
 		$this->users[$newname]['editing']	= $this->GetEditingPermissions();
 
-		$this->SetUserPass($newname, $_POST['password']);
+		if(!$this->SetUserPass($newname, $password)){
+			msg($langmessage['OOPS']);
+			return false;
+		}
 
 		if($this->SaveUserFile()){
 			$url = \gp\tool::GetUrl('Admin/Users','',false);
@@ -368,16 +389,14 @@ class Users extends \gp\special\Base{
 			return 'all';
 		}
 
-		$_POST = array_merge(array('grant'=>array()), $_POST);
-		$array = $_POST['grant'];
+		$array = isset($_POST['grant']) ? $_POST['grant'] : array();
+		if(!is_array($array)){
+			$array = array();
+		}
 
 		// Cannot remove self from Admin/Users
 		if($username === $gpAdmin['username']){
-			$array = array_merge($array, array('Admin/Users'));
-		}
-
-		if(!is_array($array)){
-			return '';
+			$array[] = 'Admin/Users';
 		}
 
 		$keys = array_keys($this->possible_permissions);
@@ -397,9 +416,7 @@ class Users extends \gp\special\Base{
 			return 'all';
 		}
 
-		$_POST = array_merge(array('titles'=>array()), $_POST);
-		$array = $_POST['titles'];
-
+		$array = isset($_POST['titles']) ? $_POST['titles'] : array();
 		if(!is_array($array)){
 			return '';
 		}
@@ -810,12 +827,16 @@ class Users extends \gp\special\Base{
 			return false;
 		}
 
-		if(!$this->ValidatePasswordStrength($_POST['password'])){
+		$password = (string)$_POST['password'];
+		if(!$this->ValidatePasswordStrength($password)){
 			msg('Password must be at least 8 characters long');
 			return false;
 		}
 
-		$this->SetUserPass($username, $_POST['password']);
+		if(!$this->SetUserPass($username, $password)){
+			msg($langmessage['OOPS']);
+			return false;
+		}
 
 		return $this->SaveUserFile();
 	}
@@ -828,7 +849,10 @@ class Users extends \gp\special\Base{
 	public function CheckPasswords(){
 		global $langmessage;
 
-		if(empty($_POST['password']) || $_POST['password'] !== $_POST['password1']){
+		$password = isset($_POST['password']) ? (string)$_POST['password'] : '';
+		$password1 = isset($_POST['password1']) ? (string)$_POST['password1'] : '';
+
+		if($password === '' || $password !== $password1){
 			msg($langmessage['invalid_password']);
 			return false;
 		}
@@ -849,7 +873,11 @@ class Users extends \gp\special\Base{
 
 		// Fix the editing value
 		foreach($this->users as $username => $userinfo){
-			$userinfo = array_merge(array('granted'=>''), $userinfo);
+			if(!is_array($userinfo)){
+				unset($this->users[$username]);
+				continue;
+			}
+			$userinfo = array_merge(array('granted'=>'','email'=>''), $userinfo);
 			\gp\admin\Tools::EditingValue($userinfo);
 			$this->users[$username] = $userinfo;
 		}
