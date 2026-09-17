@@ -1,5 +1,5 @@
 <?php
-
+//gai1
 namespace gp\admin\Content{
 
 	defined('is_running') or die('Not an entry point...');
@@ -162,7 +162,7 @@ namespace gp\admin\Content{
 		public function SetDirectory(){
 
 			$subdir		= '';
-			$path		= \gp\tool::WhichPage(); // get the current path, not using $page->requested since space characters will have been changed to underscores
+			$path		= (string)\gp\tool::WhichPage(); // get the current path, not using $page->requested since space characters will have been changed to underscores
 			$path		= str_replace('\\','/',$path);
 
 			//@since 5.0
@@ -294,7 +294,9 @@ namespace gp\admin\Content{
 			//folder information
 			$folders = $files = array();
 			$allFiles = \gp\tool\Files::ReadFolderAndFiles($dir);
-			list($folders,$files) = $allFiles;
+			if (is_array($allFiles)) {
+				list($folders,$files) = $allFiles;
+			}
 
 			//available images
 			ob_start();
@@ -369,9 +371,11 @@ namespace gp\admin\Content{
 				$full_dir = $dataDir.'/data/_uploaded'.$sub_dir;
 				$sub_files = scandir($full_dir);
 				$count = 0;
-				foreach($sub_files as $file){
-					if( self::IsImg($file) ){
-						$count++;
+				if (is_array($sub_files)) {
+					foreach($sub_files as $file){
+						if( self::IsImg($file) ){
+							$count++;
+						}
 					}
 				}
 				$return		.= '<a class="gp_gallery_folder" data-cmd="gp_gallery_folder" data-arg="'.htmlspecialchars($sub_dir).'"><i class="fa fa-folder-o"></i> <span class="gp_count">'.$count.'</span>'.$folder.'</a>';
@@ -607,8 +611,7 @@ namespace gp\admin\Content{
 			$file_type = array_pop($name_parts);
 			$temp_name = implode('.',$name_parts);
 
-			$server_software =& $_SERVER['SERVER_SOFTWARE'];
-			$server_software = strtolower($server_software);
+			$server_software = isset($_SERVER['SERVER_SOFTWARE']) ? strtolower($_SERVER['SERVER_SOFTWARE']) : '';
 			if( strpos($server_software,'win') === false ){
 				return $name;
 			}
@@ -701,8 +704,8 @@ namespace gp\admin\Content{
 				$allowed_types				= array_merge($allowed_types,$upload_extensions_allow);
 			}
 			if( is_array($upload_extensions_deny) ){
-				$upload_extensions_allow	= array_map('trim',$upload_extensions_allow);
-				$upload_extensions_allow	= array_map('strtolower',$upload_extensions_allow);
+				$upload_extensions_deny		= array_map('trim',$upload_extensions_deny);
+				$upload_extensions_deny		= array_map('strtolower',$upload_extensions_deny);
 				$allowed_types				= array_diff($allowed_types,$upload_extensions_deny);
 			}
 
