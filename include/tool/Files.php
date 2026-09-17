@@ -1,44 +1,122 @@
 <?php
-
+//gai-56-2
 namespace gp\tool{
 
 	defined('is_running') or die('Not an entry point...');
 
 	/**
-	 * Contains functions for working with data files and directories
+	 * Contains functions for working with data files and directories.
+	 * Enhanced with explicit error handling, path boundary verification,
+	 * and strict symlink safety checks.
 	 *
 	 */
 	class Files{
 
-		public static $last_modified;						//the modified time of the last file retrieved with gp\tool\Files::Get();
-		public static $last_version;						//the version of the last file retrieved with gp\tool\Files::Get();
-		public static $last_stats			= array();		//the stats of the last file retrieved with gp\tool\Files::Get();
-		public static $last_meta			= array();		//the meta data of the last file retrieved with gp\tool\Files::Get();
+		public static $last_modified;						// the modified time of the last file retrieved with gp\tool\Files::Get();
+		public static $last_version;						// the version of the last file retrieved with gp\tool\Files::Get();
+		public static $last_stats			= array();		// the stats of the last file retrieved with gp\tool\Files::Get();
+		public static $last_meta			= array();		// the meta data of the last file retrieved with gp\tool\Files::Get();
 
 
 		/**
-		 * Make sure the $path is a subdirectory of $parent
+		 * Make sure the $path is a subdirectory or file within $parent.
+		 * Resolves symlinks and checks canonical path boundaries to prevent traversal attacks.
 		 *
-		 * @param string The file path to check
-		 * @param string The parent file path to check, null to check against $dataDir
-		 * @return bool
+		 * @param string $path The file or directory path to check
+		 * @param string|null $parent The parent file path to check against, null to check against $dataDir
+		 * @return bool True if $path is safely contained within $parent, false otherwise
 		 */
-		public static function CheckPath( $path, $parent = null){
+		public static function CheckPath( $path, $parent = null ){
 			global $dataDir;
+
+			if( !is_string($path) || $path === '' ){
+				return false;
+			}
 
 			if( is_null($parent) ){
 				$parent = $dataDir;
 			}
 
-			$path = self::Canonicalize($path);
-			if( strpos($path, $parent) === 0 ){
+			if( !is_string($parent) || $parent === '' ){
+				return false;
+			}
+
+			// Remove NULL bytes before doing any path operation.
+			$path	= self::NoNull($path);
+			$parent	= self::NoNull($parent);
+			if( $path === '' || $parent === '' ){
+				return false;
+			}
+
+			// 1. Textual canonicalization of BOTH paths.
+			$canonPath	= self::Canonicalize($path);
+			$canonParent	= self::Canonicalize($parent);
+
+			if( $canonPath === '' || $canonParent === '' ){
+				return false;
+			}
+
+			$cleanParent = ($canonParent === '/') ? '/' : rtrim($canonParent, '/');
+
+			// Enforce a real directory boundary, not a simple string prefix.
+			$insideCanonical = (
+				$canonPath === $cleanParent ||
+				strpos($canonPath, $cleanParent . '/') === 0
+			);
+
+			if( !$insideCanonical ){
+				return false;
+			}
+
+			// 2. Resolve the parent. If it cannot be resolved, keep the
+			// textual boundary check as the applicable check.
+			$realParent = realpath($parent);
+			if( $realParent === false ){
 				return true;
 			}
 
-			return false;
+			$realParent = str_replace('\\', '/', $realParent);
+			$cleanRealParent = ($realParent === '/') ? '/' : rtrim($realParent, '/');
+
+			// If the target exists, resolve it directly.
+			$realPath = realpath($path);
+			if( $realPath !== false ){
+				$realPath = str_replace('\\', '/', $realPath);
+
+				return (
+					$realPath === $cleanRealParent ||
+					strpos($realPath, $cleanRealParent . '/') === 0
+				);
+			}
+
+			// If the target does not exist yet, resolve the nearest existing
+			// ancestor. This also catches symlinked directories in the path.
+			$dir = $path;
+			while( $dir !== '' && $dir !== '.' && $dir !== '/' && $dir !== '\\' && !file_exists($dir) ){
+				$parentDir = dirname($dir);
+				if( $parentDir === $dir ){
+					break;
+				}
+				$dir = $parentDir;
+			}
+
+			if( !file_exists($dir) ){
+				return true;
+			}
+
+			$realDir = realpath($dir);
+			if( $realDir === false ){
+				return false;
+			}
+
+			$realDir = str_replace('\\', '/', $realDir);
+			$cleanRealDir = ($realDir === '/') ? '/' : rtrim($realDir, '/');
+
+			return (
+				$cleanRealDir === $cleanRealParent ||
+				strpos($cleanRealDir, $cleanRealParent . '/') === 0
+			);
 		}
-
-
 
 		/**
 		 * Return Canonicalized absolute pathname
@@ -47,50 +125,33 @@ namespace gp\tool{
 		 * @param string $path
 		 * @return string
 		 */
-	    public static function canonicalizePath(string $path): string
-{
-         $path = \gp\tool\Editing::Sanitize($path);
-         $path = str_replace('\\', '/', $path);
+		public static function Canonicalize($path) {
+			if( !is_string($path) ){
+				return '';
+			}
 
-         if ($path === '') {
-          return '';
-         }
+			$path			= self::NoNull($path);
+			$path			= \gp\tool\Editing::Sanitize($path);
+			$path			= str_replace( '\\', '/', $path);
+			$start_slash	= (isset($path[0]) && $path[0] == '/') ? '/' : '';
+			$parts			= explode('/', $path);
+			$parts			= array_filter($parts);
+			$absolutes		= array();
 
-        //  Extract Windows drive letter if present (e.g., "C:")
-        $drive = '';
-        if (preg_match('/^[a-zA-Z]:/', $path, $matches)) {
-        $drive = $matches[0];
-        $path = substr($path, 2); // Remove the "C:" from the string temporarily
-        }
+			foreach( $parts as $part ){
+				if( '.' == $part ){
+					continue;
+				}
+				if( '..' == $part ){
+					array_pop($absolutes);
+				}else{
+					$absolutes[] = $part;
+				}
+			}
+			return $start_slash . implode('/', $absolutes);
+		}
 
-        // check if it's an absolute path
-        $isAbsolute = str_starts_with($path, '/');
-        $parts = explode('/', $path);
-        $absolutes = [];
 
-        foreach ($parts as $part) {
-        if ($part === '' || $part === '.') {
-            continue;
-        }
-
-        if ($part === '..') {
-            if (!empty($absolutes) && end($absolutes) !== '..') {
-                array_pop($absolutes);
-            } elseif (!$isAbsolute) {
-                // Only allow traversing "above" the starting point if it's a relative path
-                $absolutes[] = '..';
-            }
-            continue;
-        }
-
-        $absolutes[] = $part;
-        }
-
-        // Reconstruct the path, adding the drive letter back
-        return $drive . ($isAbsolute ? '/' : '') . implode('/', $absolutes);
-        }
-
-        
 
 		/**
 		 * Get array from data file
@@ -110,22 +171,32 @@ namespace gp\tool{
 			$fileVersion			= gpversion;
 			$meta_data				= array();
 
+			if( empty($file) || !is_string($file) ){
+				return array();
+			}
+
 			if( !$var_name ){
 				$var_name	= basename($file);
 			}
 
 			$file = self::FilePath($file);
 
-			//json
-			if( gp_data_type === '.json' ){
-				return self::Get_Json($file,$var_name);
+			// json
+			if( defined('gp_data_type') && gp_data_type === '.json' ){
+				return self::Get_Json($file, $var_name);
 			}
 
-			if( !file_exists($file) ){
+			if( !file_exists($file) || !is_readable($file) ){
 				return array();
 			}
 
-			include($file);
+			try{
+				include($file);
+			}catch(\Throwable $e){
+				trigger_error('Error loading data file [' . $file . ']: ' . $e->getMessage(), E_USER_WARNING);
+				return array();
+			}
+
 			if( !isset(${$var_name}) || !is_array(${$var_name}) ){
 				return array();
 			}
@@ -142,7 +213,7 @@ namespace gp\tool{
 			self::$last_modified		= $fileModTime;
 			self::$last_version			= $fileVersion;
 			self::$last_stats			= $file_stats;
-			if( isset($meta_data) ){
+			if( isset($meta_data) && is_array($meta_data) ){
 				self::$last_meta		= $meta_data;
 			}
 
@@ -152,27 +223,41 @@ namespace gp\tool{
 
 
 		/**
-		 * Experimental
+		 * Get JSON formatted data file
 		 *
 		 */
-		private static function Get_Json($file,$var_name){
+		private static function Get_Json($file, $var_name){
 
-			if( !file_exists($file) ){
+			if( !file_exists($file) || !is_readable($file) ){
 				return array();
 			}
 
-			$contents	= file_get_contents($file);
-			$data		= json_decode($contents,true);
+			$contents = @file_get_contents($file);
+			if( $contents === false ){
+				trigger_error('Failed to read file contents for [' . $file . ']', E_USER_WARNING);
+				return array();
+			}
 
-			if( !isset($data[$var_name]) || !is_array($data[$var_name]) ){
+			$data = json_decode($contents, true);
+			if( json_last_error() !== JSON_ERROR_NONE ){
+				trigger_error('JSON decode error in [' . $file . ']: ' . json_last_error_msg(), E_USER_WARNING);
+				return array();
+			}
+
+			if( !is_array($data) || !isset($data[$var_name]) || !is_array($data[$var_name]) ){
 				return array();
 			}
 
 			// File stats
-			self::$last_modified		= $data['file_stats']['modified'];
-			self::$last_version			= $data['file_stats']['gpversion'];
-			self::$last_stats			= $data['file_stats'];
-			self::$last_meta			= $data['meta_data'];
+			if( isset($data['file_stats']) && is_array($data['file_stats']) ){
+				self::$last_modified	= isset($data['file_stats']['modified']) ? $data['file_stats']['modified'] : null;
+				self::$last_version		= isset($data['file_stats']['gpversion']) ? $data['file_stats']['gpversion'] : null;
+				self::$last_stats		= $data['file_stats'];
+			}
+
+			if( isset($data['meta_data']) && is_array($data['meta_data']) ){
+				self::$last_meta		= $data['meta_data'];
+			}
 
 			return $data[$var_name];
 		}
@@ -184,10 +269,22 @@ namespace gp\tool{
 		 *
 		 */
 		public static function GetRaw($file){
+			if( empty($file) ){
+				return false;
+			}
 
 			$file = self::FilePath($file);
 
-			return file_get_contents($file);
+			if( !file_exists($file) || !is_readable($file) ){
+				return false;
+			}
+
+			$contents = @file_get_contents($file);
+			if( $contents === false ){
+				trigger_error('GetRaw() failed to read file: ' . $file, E_USER_WARNING);
+			}
+
+			return $contents;
 		}
 
 
@@ -197,6 +294,9 @@ namespace gp\tool{
 		 *
 		 */
 		public static function Exists($file){
+			if( empty($file) ){
+				return false;
+			}
 
 			$file = self::FilePath($file);
 
@@ -210,32 +310,35 @@ namespace gp\tool{
 		 *
 		 * @param string $dir The path of the directory to be read
 		 * @param mixed $filetype If false, all files in $dir will be included. false=all,1=directories,'php'='.php' files
-		 * @return array() List of files in $dir
+		 * @return array List of files in $dir
 		 */
-		public static function ReadDir($dir,$filetype='php'){
+		public static function ReadDir($dir, $filetype='php'){
 			$files = array();
-			if( !file_exists($dir) ){
-				return $files;
-			}
-			$dh = @opendir($dir);
-			if( !$dh ){
+
+			if( empty($dir) || !is_dir($dir) || !is_readable($dir) ){
 				return $files;
 			}
 
-			while( ($file = readdir($dh)) !== false){
+			$dh = @opendir($dir);
+			if( !$dh ){
+				trigger_error('ReadDir() failed to open directory handle for: ' . $dir, E_USER_WARNING);
+				return $files;
+			}
+
+			while( ($file = readdir($dh)) !== false ){
 				if( $file == '.' || $file == '..' ){
 					continue;
 				}
 
-				//get all
+				// get all
 				if( $filetype === false ){
 					$files[$file] = $file;
 					continue;
 				}
 
-				//get directories
+				// get directories
 				if( $filetype === 1 ){
-					$fullpath = $dir.'/'.$file;
+					$fullpath = $dir . '/' . $file;
 					if( is_dir($fullpath) ){
 						$files[$file] = $file;
 					}
@@ -249,15 +352,15 @@ namespace gp\tool{
 
 				$type = substr($file, $dot + 1);
 
-				//if $filetype is an array
+				// if $filetype is an array
 				if( is_array($filetype) ){
-					if( in_array($type, $filetype) ){
+					if( in_array($type, $filetype, true) ){
 						$files[$file] = $file;
 					}
 					continue;
 				}
 
-				//if $filetype is a string
+				// if $filetype is a string
 				if( $type == $filetype ){
 					$file = substr($file, 0, $dot);
 					$files[$file] = $file;
@@ -275,32 +378,39 @@ namespace gp\tool{
 		 * Read all of the folders and files within $dir and return them in an organized array
 		 *
 		 * @param string $dir The directory to be read
-		 * @return array() The folders and files within $dir
+		 * @return array The folders and files within $dir
 		 *
 		 */
 		public static function ReadFolderAndFiles($dir){
+			if( empty($dir) || !is_dir($dir) || !is_readable($dir) ){
+				return array(array(), array());
+			}
+
 			$dh = @opendir($dir);
 			if( !$dh ){
-				return array();
+				trigger_error('ReadFolderAndFiles() failed to open directory handle: ' . $dir, E_USER_WARNING);
+				return array(array(), array());
 			}
 
 			$folders = array();
 			$files = array();
-			while( ($file = readdir($dh)) !== false){
-				if( strpos($file, '.') === 0){
+			while( ($file = readdir($dh)) !== false ){
+				if( strpos($file, '.') === 0 ){
 					continue;
 				}
 
-				$fullPath = $dir. '/'. $file;
+				$fullPath = $dir . '/' . $file;
 				if( is_dir($fullPath) ){
 					$folders[] = $file;
 				}else{
 					$files[] = $file;
 				}
 			}
+			closedir($dh);
+
 			natcasesort($folders);
 			natcasesort($files);
-			return array($folders, $files);
+			return array(array_values($folders), array_values($files));
 		}
 
 
@@ -346,13 +456,18 @@ namespace gp\tool{
 		 * @return string The cleansed title
 		 */
 		public static function CleanLabel($title=''){
+			if( !is_string($title) ){
+				return '';
+			}
 
+			$title = self::NoNull($title);
 			$title = str_replace(array('"'), array(''), $title);
 			$title = str_replace(array('<', '>'), array('_'), $title);
 			$title = trim($title);
 
 			// Remove control characters
-			return preg_replace('#[[:cntrl:]]#u', '', $title); // [\x00-\x1F\x7F]
+			$cleaned = preg_replace('#[[:cntrl:]]#u', '', $title);
+			return ($cleaned !== null) ? $cleaned : '';
 		}
 
 
@@ -363,10 +478,14 @@ namespace gp\tool{
 		 * @param string $text The string to be cleansed. Passed by reference
 		 */
 		public static function CleanText(&$text){
+			if( !is_string($text) ){
+				return;
+			}
+			$text = self::NoNull($text);
 			\gp\tool\Editing::tidyFix($text);
 			self::rmPHP($text);
 			self::FixTags($text);
-			$text = \gp\tool\Plugins::Filter('CleanText',array($text));
+			$text = \gp\tool\Plugins::Filter('CleanText', array($text));
 		}
 
 
@@ -377,6 +496,9 @@ namespace gp\tool{
 		 * @param string $text The html content to be checked. Passed by reference
 		 */
 		public static function FixTags(&$text){
+			if( !is_string($text) ){
+				return;
+			}
 			$gp_html_output = new \gp\tool\Editing\HTML($text);
 			$text = $gp_html_output->result;
 		}
@@ -389,6 +511,9 @@ namespace gp\tool{
 		 * @param string $text The html content to be checked. Passed by reference
 		 */
 		public static function rmPHP(&$text){
+			if( !is_string($text) ){
+				return;
+			}
 			$search = array('<?', '<?php', '?>');
 			$replace = array('&lt;?', '&lt;?php', '?&gt;');
 			$text = str_replace($search, $replace, $text);
@@ -403,8 +528,12 @@ namespace gp\tool{
 		 * @return string
 		 */
 		public static function NoNull($string){
+			if( !is_string($string) ){
+				return '';
+			}
 			$string = preg_replace('/\0+/', '', $string);
-			return preg_replace('/(\\\\0)+/', '', $string);
+			$cleaned = preg_replace('/(\\\\0)+/', '', $string);
+			return ($cleaned !== null) ? $cleaned : '';
 		}
 
 
@@ -415,10 +544,10 @@ namespace gp\tool{
 		 *
 		 */
 		public static function NewTitle($title, $section_content=false, $type='text'){
-			// get the file for the title
-			if( empty($title) ){
+			if( empty($title) || !is_string($title) ){
 				return false;
 			}
+
 			$file = self::PageFile($title);
 			if( !$file ){
 				return false;
@@ -443,7 +572,7 @@ namespace gp\tool{
 				'file_type'		=> $type,
 			);
 
-			return self::SaveData($file,'file_sections',$file_sections,$meta_data);
+			return self::SaveData($file, 'file_sections', $file_sections, $meta_data);
 		}
 
 
@@ -453,17 +582,21 @@ namespace gp\tool{
 		 * Since v4.6, page files are within a subfolder
 		 * As of v2.3.4, it defaults to an index based file name but falls back on title based file name for backwards compatibility
 		 *
-		 *
 		 * @param string $title
 		 * @return string The path of the data file
 		 */
 		public static function PageFile($title){
 			global $dataDir, $config, $gp_index;
 
+			if( !is_string($title) ){
+				return '';
+			}
+
+			$title = self::NoNull($title);
 			$index_path = false;
 
 			// filename based on title index
-			if( gp_index_filenames && isset($gp_index[$title]) && isset($config['gpuniq']) ){
+			if( defined('gp_index_filenames') && gp_index_filenames && isset($gp_index[$title]) && isset($config['gpuniq']) ){
 				$index_path = $dataDir . '/data/_pages/' . substr($config['gpuniq'], 0, 7) . '_' . $gp_index[$title] . '/page.php';
 			}
 
@@ -481,12 +614,14 @@ namespace gp\tool{
 		public static function NewFileNumber(){
 			global $config;
 
-			if( !isset($config['file_count']) ){
+			if( !isset($config['file_count']) || !is_numeric($config['file_count']) ){
 				$config['file_count'] = 0;
 			}
 			$config['file_count']++;
 
-			\gp\admin\Tools::SaveConfig();
+			if( class_exists('\gp\admin\Tools') && method_exists('\gp\admin\Tools', 'SaveConfig') ){
+				\gp\admin\Tools::SaveConfig();
+			}
 
 			return $config['file_count'];
 		}
@@ -500,7 +635,10 @@ namespace gp\tool{
 		 * @return array
 		 */
 		public static function GetTitleMeta($file){
-			self::Get($file,'meta_data');
+			if( empty($file) ){
+				return array();
+			}
+			self::Get($file, 'meta_data');
 			return self::$last_meta;
 		}
 
@@ -511,20 +649,22 @@ namespace gp\tool{
 		 *
 		 */
 		public static function GetFileStats($file){
+			if( empty($file) ){
+				return array('created' => time());
+			}
 
 			$file_stats = self::Get($file, 'file_stats');
-			if( $file_stats ){
+			if( is_array($file_stats) && !empty($file_stats) ){
 				return $file_stats;
 			}
 
-			return array('created'=> time());
+			return array('created' => time());
 		}
 
 
 
 		/**
 		 * Save a file with content and data to the server
-		 * This function will be deprecated in future releases. Using it is not recommended
 		 *
 		 * @param string $file The path of the file to be saved
 		 * @param string $contents The contents of the file to be saved
@@ -533,7 +673,6 @@ namespace gp\tool{
 		 * @return bool True on success
 		 */
 		public static function SaveFile($file, $contents, $code=false, $time=false){
-
 			$result = self::FileStart($file, $time);
 			if( $result !== false ){
 				$result .= "\n" . $code;
@@ -553,34 +692,48 @@ namespace gp\tool{
 		 * @param string $contents The contents of the file to be saved
 		 * @return bool True on success
 		 */
-		public static function Save($file,$contents){
+		public static function Save($file, $contents){
 			global $gp_not_writable;
 
+			if( empty($file) || !is_string($file) ){
+				trigger_error('Save() called with invalid or empty filename', E_USER_WARNING);
+				return false;
+			}
+
+			$file	= self::NoNull($file);
 			$exists = self::Exists($file);
 
-			//make sure directory exists
+			// make sure directory exists
 			if( !$exists ){
 				$dir = \gp\tool::DirName($file);
 				if( !file_exists($dir) ){
-					self::CheckDir($dir);
+					if( !self::CheckDir($dir) ){
+						trigger_error('Save() failed to create target directory: ' . $dir, E_USER_WARNING);
+						return false;
+					}
 				}
 			}
 
 			$fp = @fopen($file, 'wb');
 			if( $fp === false ){
-				$gp_not_writable[] = $file;
+				if( is_array($gp_not_writable) ){
+					$gp_not_writable[] = $file;
+				}
+				trigger_error('Save() failed to open file for writing: ' . $file, E_USER_WARNING);
 				return false;
 			}
 
 			if( !flock($fp, LOCK_EX) ){
-				trigger_error('flock could not be obtained.');
+				fclose($fp);
+				trigger_error('Save() flock could not be obtained for: ' . $file, E_USER_WARNING);
 				return false;
 			}
 
+			$chmod_val = defined('gp_chmod_file') ? gp_chmod_file : 0666;
 			if( !$exists ){
-				@chmod($file, gp_chmod_file);
+				@chmod($file, $chmod_val);
 			}elseif( function_exists('opcache_invalidate') && substr($file, -4) === '.php' ){
-				opcache_invalidate($file);
+				@opcache_invalidate($file, true);
 			}
 
 			$return = fwrite($fp, $contents);
@@ -588,7 +741,12 @@ namespace gp\tool{
 			flock($fp, LOCK_UN);
 			fclose($fp);
 
-			return ($return !== false);
+			if( $return === false ){
+				trigger_error('Save() failed during fwrite() execution for: ' . $file, E_USER_WARNING);
+				return false;
+			}
+
+			return true;
 		}
 
 
@@ -600,17 +758,28 @@ namespace gp\tool{
 		public static function Rename($from, $to){
 			global $gp_not_writable;
 
-			if( !self::WriteLock() ){
+			if( empty($from) || empty($to) ){
 				return false;
 			}
 
-			//make sure directory exists
+			if( !self::WriteLock() ){
+				trigger_error('Rename() aborted because write lock could not be acquired.', E_USER_WARNING);
+				return false;
+			}
+
+			// make sure destination directory exists
 			$dir = \gp\tool::DirName($to);
 			if( !file_exists($dir) && !self::CheckDir($dir) ){
+				trigger_error('Rename() failed to create destination directory: ' . $dir, E_USER_WARNING);
 				return false;
 			}
 
-			return rename($from, $to);
+			$res = @rename($from, $to);
+			if( !$res ){
+				trigger_error('Rename() failed from [' . $from . '] to [' . $to . ']', E_USER_WARNING);
+			}
+
+			return $res;
 		}
 
 
@@ -620,26 +789,31 @@ namespace gp\tool{
 		 *
 		 */
 		public static function Replace($from, $to){
+			if( empty($from) || empty($to) ){
+				return false;
+			}
 
 			$temp_dir = '';
 
 			// move the $to out of the way if it exists
 			if( file_exists($to) ){
-				$temp_dir = $to . '_' . time();
-				if( !self::rename($to, $temp_dir) ){
+				$temp_dir = $to . '_' . time() . '_' . mt_rand(1000, 9999);
+				if( !self::Rename($to, $temp_dir) ){
+					trigger_error('Replace() failed to backup existing target to temporary path.', E_USER_WARNING);
 					return false;
 				}
 			}
 
 			// rename $from -> $to
-			if( !self::rename($from, $to) ){
-				if( $temp_dir ){
-					self::rename($temp_dir, $to);
+			if( !self::Rename($from, $to) ){
+				if( $temp_dir && file_exists($temp_dir) ){
+					self::Rename($temp_dir, $to);
 				}
+				trigger_error('Replace() failed to move source file to target location.', E_USER_WARNING);
 				return false;
 			}
 
-			if( !empty($temp_dir) ){
+			if( !empty($temp_dir) && file_exists($temp_dir) ){
 				self::RmAll($temp_dir);
 			}
 
@@ -658,13 +832,15 @@ namespace gp\tool{
 				return gp_has_lock;
 			}
 
-			$expires = gp_write_lock_time;
-			if( self::Lock('write', gp_random, $expires) ){
+			$expires	= defined('gp_write_lock_time') ? gp_write_lock_time : 10;
+			$randomVal	= defined('gp_random') ? gp_random : uniqid('', true);
+
+			if( self::Lock('write', $randomVal, $expires) ){
 				define('gp_has_lock', true);
 				return true;
 			}
 
-			trigger_error('CMS write lock could not be obtained.');
+			trigger_error('CMS write lock could not be obtained.', E_USER_WARNING);
 			define('gp_has_lock', false);
 
 			return false;
@@ -680,6 +856,10 @@ namespace gp\tool{
 		public static function Lock($file, $value, &$expires){
 			global $dataDir;
 
+			if( empty($file) ){
+				return false;
+			}
+
 			$tries			= 0;
 			$lock_file		= $dataDir . '/data/_lock_' . sha1($file);
 			$file_time		= 0;
@@ -688,10 +868,10 @@ namespace gp\tool{
 			while( $tries < 1000 ){
 
 				if( !file_exists($lock_file) ){
-					file_put_contents($lock_file, $value);
+					@file_put_contents($lock_file, $value);
 					usleep(100);
 				}elseif( !$file_time ){
-					$file_time = filemtime($lock_file);
+					$file_time = @filemtime($lock_file);
 				}
 
 				$contents = @file_get_contents($lock_file);
@@ -728,6 +908,10 @@ namespace gp\tool{
 		public static function Unlock($file, $value){
 			global $dataDir;
 
+			if( empty($file) ){
+				return false;
+			}
+
 			$lock_file = $dataDir . '/data/_lock_' . sha1($file);
 			if( !file_exists($lock_file) ){
 				return true;
@@ -738,7 +922,7 @@ namespace gp\tool{
 				return true;
 			}
 			if( $value === $contents ){
-				unlink($lock_file);
+				@unlink($lock_file);
 				return true;
 			}
 			return false;
@@ -758,14 +942,14 @@ namespace gp\tool{
 		 */
 		public static function SaveArray(){
 
-			if( gp_data_type === '.json' ){
-				throw new Exception('SaveArray() cannot be used for json data. Use SaveData() instead');
+			if( defined('gp_data_type') && gp_data_type === '.json' ){
+				throw new \Exception('SaveArray() cannot be used for json data. Use SaveData() instead');
 			}
 
 			$args = func_get_args();
 			$count = count($args);
-			if( ($count %2 !== 1) || ($count < 3) ){
-				trigger_error('Wrong argument count ' . $count . ' for \gp\tool\Files::SaveArray() ');
+			if( ($count % 2 !== 1) || ($count < 3) ){
+				trigger_error('Wrong argument count ' . $count . ' for \gp\tool\Files::SaveArray() ', E_USER_WARNING);
 				return false;
 			}
 			$file = array_shift($args);
@@ -776,7 +960,7 @@ namespace gp\tool{
 				$varname = array_shift($args);
 				$array = array_shift($args);
 				if( $varname == 'file_stats' ){
-					$file_stats = $array;
+					$file_stats = (array)$array;
 				}else{
 					$data .= self::ArrayToPHP($varname, $array);
 					$data .= "\n\n";
@@ -801,13 +985,22 @@ namespace gp\tool{
 		 */
 		public static function SaveData($file, $varname, $array, $meta=array()){
 
+			if( empty($file) || !is_string($file) ){
+				trigger_error('SaveData() called with invalid or empty file path.', E_USER_WARNING);
+				return false;
+			}
+
 			$file = self::FilePath($file);
 
-			if( gp_data_type === '.json' ){
+			if( defined('gp_data_type') && gp_data_type === '.json' ){
 				$json				= self::FileStart_Json($file);
 				$json[$varname]		= $array;
 				$json['meta_data']	= $meta;
 				$content			= json_encode($json);
+				if( $content === false ){
+					trigger_error('SaveData() failed json_encode: ' . json_last_error_msg(), E_USER_WARNING);
+					return false;
+				}
 			}else{
 				$content			= self::FileStart($file);
 				$content			.= self::ArrayToPHP($varname, $array);
@@ -821,7 +1014,7 @@ namespace gp\tool{
 
 
 		/**
-		 * Experimental
+		 * Experimental JSON File Header metadata generator
 		 *
 		 */
 		private static function FileStart_Json($file, $time=null ){
@@ -831,14 +1024,16 @@ namespace gp\tool{
 				$time = time();
 			}
 
-			//file stats
+			// file stats
 			$file_stats					= self::GetFileStats($file);
-			$file_stats['gpversion']	= gpversion;
+			$file_stats['gpversion']	= defined('gpversion') ? gpversion : 'unknown';
 			$file_stats['modified']		= $time;
 			$file_stats['username']		= false;
 
-			if( \gp\tool::loggedIn() ){
-				$file_stats['username'] = $gpAdmin['username'];
+			if( class_exists('\gp\tool') && method_exists('\gp\tool', 'loggedIn') && \gp\tool::loggedIn() ){
+				if( isset($gpAdmin['username']) ){
+					$file_stats['username'] = $gpAdmin['username'];
+				}
 			}
 
 			$json						= array();
@@ -860,21 +1055,27 @@ namespace gp\tool{
 				$time = time();
 			}
 
-			//file stats
+			$version = defined('gpversion') ? gpversion : 'unknown';
+
+			// file stats
 			$file_stats 				= (array)$file_stats + self::GetFileStats($file);
-			$file_stats['gpversion']	= gpversion;
+			$file_stats['gpversion']	= $version;
 			$file_stats['modified']		= $time;
 
-			if( \gp\tool::loggedIn() ){
-				$file_stats['username']	= $gpAdmin['username'];
+			if( class_exists('\gp\tool') && method_exists('\gp\tool', 'loggedIn') && \gp\tool::loggedIn() ){
+				if( isset($gpAdmin['username']) ){
+					$file_stats['username'] = $gpAdmin['username'];
+				}else{
+					$file_stats['username'] = false;
+				}
 			}else{
 				$file_stats['username']	= false;
 			}
 
 			return '<' . '?' . 'php'
 					. "\ndefined('is_running') or die('Not an entry point...');"
-					. "\n" . '$fileVersion = \'' . gpversion . '\';'	// @deprecated 3.0
-					. "\n" . '$fileModTime = \'' . $time . '\';'		// @deprecated 3.0
+					. "\n" . '$fileVersion = \'' . addslashes($version) . '\';'	// @deprecated 3.0
+					. "\n" . '$fileModTime = \'' . addslashes((string)$time) . '\';'		// @deprecated 3.0
 					. "\n" . self::ArrayToPHP('file_stats', $file_stats)
 					. "\n\n";
 		}
@@ -899,18 +1100,25 @@ namespace gp\tool{
 		 * @return bool True on success
 		 */
 		public static function ArrayInsert($search_key, $new_key, $new_value, &$array, $offset=0, $length=0){
+			if( !is_array($array) ){
+				return false;
+			}
 
 			$array_keys		= array_keys($array);
 			$array_values	= array_values($array);
 
-			$insert_key		= array_search($search_key,$array_keys);
-			if( ($insert_key === null) || ($insert_key === false) ){
+			$insert_key		= array_search($search_key, $array_keys, true);
+			if( $insert_key === null || $insert_key === false ){
 				return false;
 			}
 
 			array_splice($array_keys, $insert_key + $offset, $length, $new_key);
-			array_splice($array_values, $insert_key + $offset, $length, 'fill'); //use fill in case $new_value is an array
+			array_splice($array_values, $insert_key + $offset, $length, 'fill'); // use fill in case $new_value is an array
 			$array = array_combine($array_keys, $array_values);
+			if( $array === false ){
+				trigger_error('ArrayInsert() failed array_combine.', E_USER_WARNING);
+				return false;
+			}
 			$array[$new_key] = $new_value;
 
 			return true;
@@ -932,39 +1140,51 @@ namespace gp\tool{
 		 * Check recursively to see if a directory exists, if it doesn't attempt to create it
 		 *
 		 * @param string $dir The directory path
-		 * @param bool $index Whether or not to add an index.hmtl file in the directory
+		 * @param bool $index Whether or not to add an index.html file in the directory
 		 * @return bool True on success
 		 */
 		public static function CheckDir($dir, $index=true){
 			global $config;
 
+			if( empty($dir) || !is_string($dir) ){
+				return false;
+			}
+
+			$dir = self::NoNull($dir);
+
 			if( !file_exists($dir) ){
 				$parent = \gp\tool::DirName($dir);
-				self::CheckDir($parent, $index);
-
-
-				//ftp mkdir
-				if( !@mkdir($dir,gp_chmod_dir) ){
-					return false;
+				if( !empty($parent) && $parent !== $dir && !file_exists($parent) ){
+					if( !self::CheckDir($parent, $index) ){
+						trigger_error('CheckDir() failed to create parent directory: ' . $parent, E_USER_WARNING);
+						return false;
+					}
 				}
-				@chmod($dir, gp_chmod_dir); //some systems need more than just the 0755 in the mkdir() function
 
+				$chmod_dir = defined('gp_chmod_dir') ? gp_chmod_dir : 0755;
+
+				// mkdir attempt
+				if( !@mkdir($dir, $chmod_dir) ){
+					if( !is_dir($dir) ){ // concurrency check
+						trigger_error('CheckDir() failed to mkdir: ' . $dir, E_USER_WARNING);
+						return false;
+					}
+				}
+				@chmod($dir, $chmod_dir); // some systems need explicit chmod after mkdir
 
 				// make sure there's an index.html file
-				// only check if we just created the directory, we don't want to keep
-				// creating an index.html file if a user deletes it
-				if( $index && gp_dir_index ){
+				if( $index && (!defined('gp_dir_index') || gp_dir_index) ){
 					$indexFile = $dir . '/index.html';
 					if( !file_exists($indexFile) ){
-						//not using \gp\tool\Files::Save() so we can avoid infinite looping
-						// (it's safe since we already know the directory exists and we're not concerned about the content)
-						file_put_contents($indexFile, '<html></html>');
-						@chmod($indexFile, gp_chmod_file);
+						$chmod_file = defined('gp_chmod_file') ? gp_chmod_file : 0666;
+						if( @file_put_contents($indexFile, '<html></html>') !== false ){
+							@chmod($indexFile, $chmod_file);
+						}
 					}
 				}
 			}
 
-			return true;
+			return is_dir($dir);
 		}
 
 
@@ -975,87 +1195,171 @@ namespace gp\tool{
 		 *
 		 */
 		public static function RmDir($dir){
-			return @rmdir($dir);
+			if( empty($dir) || !is_dir($dir) ){
+				return false;
+			}
+
+			$dir = self::NoNull($dir);
+			$res = @rmdir($dir);
+			if( !$res ){
+				trigger_error('RmDir() failed to remove directory: ' . $dir, E_USER_WARNING);
+			}
+
+			return $res;
 		}
 
 
 
 		/**
-		 * Remove a file or directory and it's contents
+		 * Remove a file or directory and its contents
+		 * Strictly verifies path boundaries and symlink targets to avoid unintended deletions.
 		 *
+		 * @param string $path The target file or directory path
+		 * @return bool True on success, false on failure
 		 */
 		public static function RmAll($path){
+			global $dataDir;
 
-			if( empty($path) ){
+			if( empty($path) || !is_string($path) ){
 				return false;
 			}
-			if( is_link($path) ){
-				return @unlink($path);
-			}
-			if( !is_dir($path) ){
-				return @unlink($path);
+
+			$path = self::NoNull($path);
+
+			// Normalize and trim trailing slashes to accurately detect symlinks
+			$trimmedPath = str_replace('\\', '/', $path);
+			if( strlen($trimmedPath) > 1 ){
+				$trimmedPath = rtrim($trimmedPath, '/');
 			}
 
+			// Safety check: Never allow deleting root '/' or empty path or $dataDir root directly
+			if( $trimmedPath === '' || $trimmedPath === '/' || (isset($dataDir) && $trimmedPath === str_replace('\\', '/', $dataDir)) ){
+				trigger_error('RmAll() safety check blocked attempt to delete critical root path: ' . $path, E_USER_WARNING);
+				return false;
+			}
+
+			// Check if path is a symbolic link (must check without trailing slash)
+			if( is_link($trimmedPath) ){
+				$result = @unlink($trimmedPath);
+				if( !$result ){
+					trigger_error('RmAll() failed to unlink symbolic link: ' . $trimmedPath, E_USER_WARNING);
+				}
+				return $result;
+			}
+
+			// Check existence
+			if( !file_exists($trimmedPath) ){
+				return true; // Already removed
+			}
+
+			// Regular file removal
+			if( !is_dir($trimmedPath) ){
+				$result = @unlink($trimmedPath);
+				if( !$result ){
+					trigger_error('RmAll() failed to delete file: ' . $trimmedPath, E_USER_WARNING);
+				}
+				return $result;
+			}
+
+			// Directory content removal
 			$success	= true;
 			$subDirs	= array();
-			//$files	= scandir($path);
-			$files		= self::ReadDir($path, false);
+			$files		= self::ReadDir($trimmedPath, false);
 
-			foreach($files as $file){
-				$full_path = $path . '/' . $file;
+			if( $files === false ){
+				trigger_error('RmAll() unable to read directory contents for: ' . $trimmedPath, E_USER_WARNING);
+				return false;
+			}
 
-				if( !is_link($full_path) && is_dir($full_path) ){
+			foreach( $files as $file ){
+				$full_path = $trimmedPath . '/' . $file;
+
+				// Handle sub-symlinks directly without entering target directory
+				if( is_link($full_path) ){
+					if( !@unlink($full_path) ){
+						trigger_error('RmAll() failed to unlink nested symlink: ' . $full_path, E_USER_WARNING);
+						$success = false;
+					}
+					continue;
+				}
+
+				if( is_dir($full_path) ){
 					$subDirs[] = $full_path;
 					continue;
 				}
 
 				if( !@unlink($full_path) ){
+					trigger_error('RmAll() failed to delete nested file: ' . $full_path, E_USER_WARNING);
 					$success = false;
 				}
 			}
 
-			foreach($subDirs as $subDir){
+			foreach( $subDirs as $subDir ){
 				if( !self::RmAll($subDir) ){
 					$success = false;
 				}
 			}
 
 			if( $success ){
-				return self::RmDir($path);
+				return self::RmDir($trimmedPath);
 			}
 
 			return false;
 		}
 
 
-
-		/**
+        /**
 		 * Get the correct path for the data file
 		 * Two valid methods to get a data file path:
 		 *  Full path: /var/www/html/site/data/_site/config.php
 		 *  Relative:  _site/config
 		 *
+		 * @param string $path
+		 * @return string The formatted file path
 		 */
 		public static function FilePath($path){
 			global $dataDir;
 
-			$ext = pathinfo($path, PATHINFO_EXTENSION);
+			if( !is_string($path) || $path === '' ){
+				return '';
+			}
+
+			$path			= self::NoNull($path);
+			$normPath		= str_replace('\\', '/', $path);
+			$dataDirNorm	= isset($dataDir) ? str_replace('\\', '/', $dataDir) : '';
+
+			$ext = pathinfo($normPath, PATHINFO_EXTENSION);
 
 			if( $ext === 'gpjson' ){
-				$path = substr($path,0,-7);
+				$normPath = substr($normPath, 0, -7);
 
 			}elseif( $ext === 'php' ){
-				$path = substr($path,0,-4);
+				$normPath = substr($normPath, 0, -4);
 
 			}else{
-				$path = $dataDir . '/data/' . ltrim($path, '/');
+				// Check if absolute path or starts with $dataDir
+				$isAbsolute = (
+					(isset($normPath[0]) && $normPath[0] === '/') ||
+					(strlen($normPath) > 1 && $normPath[1] === ':') ||
+					($dataDirNorm !== '' && strpos($normPath, $dataDirNorm) === 0)
+				);
+
+				if( !$isAbsolute ){
+					$normPath = $dataDirNorm . '/data/' . ltrim($normPath, '/');
+				}
 			}
 
-			if( gp_data_type === '.json' ){
-				return $path . '.gpjson';
+			$targetExt = (defined('gp_data_type') && gp_data_type === '.json') ? '.gpjson' : '.php';
+			$finalPath = $normPath . $targetExt;
+
+			// --- SECURITY FIX: Path Boundary Check ---
+			// Stellt sicher, dass auch explizit absolute Pfade nicht aus dem $dataDir ausbrechen
+			if( !self::CheckPath($finalPath) ){
+				trigger_error('Security restriction: Invalid path access in FilePath()', E_USER_WARNING);
+				return '';
 			}
 
-			return $path . '.php';
+			return $finalPath;
 		}
 
 
@@ -1065,7 +1369,7 @@ namespace gp\tool{
 		 * Used by Simple_Blog1
 		 */
 		public static function CleanTitle($title, $spaces='_'){
-			trigger_error('Deprecated Function');
+			trigger_error('Deprecated Function: \gp\tool\Files::CleanTitle()', E_USER_DEPRECATED);
 			return \gp\tool\Editing::CleanTitle($title, $spaces);
 		}
 

@@ -79,10 +79,15 @@ namespace gp\tool{
 					}
 					$css_key = strtolower(trim($css_arg[0]));
 					$css_value = strtolower(trim($css_arg[1]));
-					$px_pos = strpos($css_value,'px');
+					
+					if (!empty($css_value) && is_string($css_value)) {
+                   		$px_pos = strpos($css_value,'px');
 					if( !$px_pos ){
 						continue;
 					}
+					}
+					
+					
 					if( $css_key == 'width' ){
 						$css_w = substr($css_value,0,$px_pos);
 					}elseif( $css_key == 'height' ){
@@ -920,7 +925,11 @@ namespace gp\tool{
 				return false;
 			}
 
-			if( !\gp\tool\Image::createImg($src_img, $dest_img_full, $posx, $posy, 0, 0, $orig_w, $orig_h, $orig_w, $orig_h, $width, $height, $source_file_full) ){
+			// if( !\gp\tool\Image::createImg($src_img, $dest_img_full, $posx, $posy, 0, 0, $orig_w, $orig_h, $orig_w, $orig_h, $width, $height, $source_file_full) ){
+				
+			// Fixed Call
+            if( !\gp\tool\Image::createImg($src_img, $dest_img_full, 0, 0, 0, 0, $width, $height, $orig_w, $orig_h, false, false, $source_file_full) ){
+	
 				msg($langmessage['OOPS'].' (Couldn\'t create image [2])');
 				return false;
 			}
@@ -1240,49 +1249,92 @@ namespace gp\tool{
 		 * Output content for use with the inline image editor
 		 *
 		 */
-		public static function ImageEditor( $obj ){
-			global $langmessage, $page;
+			/**
+	 * Output content for use with the inline image editor
+	 *
+	 */
+	  	/**
+	 * Output content for use with the inline image editor
+	 *
+	 */
+	public static function ImageEditor( $obj ){
+		global $langmessage, $page, $dataDir, $dirPrefix;
 
-
-			//image options
-			ob_start();
-
-			//edit current image
-			echo '<div id="gp_current_image" class="inline_edit_area" title="'.$langmessage['edit'].'" style="position:relative;">';
-			echo '<span id="gp_image_wrap"><img/></span>';
-			echo '<table style="table-layout:fixed; width:100%;">';
-			echo '<tr><td>'.$langmessage['Width'].'</td><td><input type="text" name="width" class="ck_input"/></td>';
-			echo '<td>'.$langmessage['Height'].'</td><td><input type="text" name="height" class="ck_input"/></td>';
-			echo '</tr>';
-			echo '<tr><td>'.$langmessage['Left'].'</td><td><input type="text" name="left" class="ck_input" value="0"/></td>';
-			echo '<td>'.$langmessage['Top'].'</td><td><input type="text" name="top" class="ck_input" value="0"/></td>';
-			echo '</tr>';
-			echo '<tr><td colspan="2" title="'.$langmessage['Alternative Text'].'" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'.$langmessage['Alternative Text'].'</td>';
-			echo '<td colspan="2"><input type="text" name="alt" style="width:calc(100% - 6px); display:block; text-align:left;" class="ck_input" value="' . $langmessage['Image'] . '"/></td></tr>';
-			echo '<tr><td><a data-cmd="deafult_sizes" class="ckeditor_control ck_reset_size" title="'.$langmessage['Theme_default_sizes'].'">&#10226;</a></td></tr>';
-			echo '</table>';
-			echo '</div>';
-
-
-			//select image
-			echo '<div id="gp_source_options" class="inline_edit_area" style="display:none" title="'.$langmessage['Select Image'].'">';
-
-			if( property_exists($obj,'curr_layout') ){
-				echo \gp\tool::Link('Admin_Theme_Content/Image/'.rawurlencode($obj->curr_layout),$langmessage['Theme Images'].'..','cmd=ShowThemeImages',' data-cmd="gpajax" class="ckeditor_control half_width" ');
-				echo '<a class="ckeditor_control half_width" data-cmd="show_uploaded_images">'.$langmessage['uploaded_files'].'</a>';
-			}
-
-			echo '<div id="gp_image_area"></div><div id="gp_upload_queue"></div>';
-
-			echo '<div id="gp_folder_options"></div>';
-			echo '</div>';
-			$content = ob_get_clean();
-
-
-			$page->ajaxReplace		= array();
-			$page->ajaxReplace[]	= array('inner','#ckeditor_top',$content);
-			$page->ajaxReplace[]	= array('image_options_loaded','',''); //tell the script the images have been loaded
+		// 1. Aktuelle Bildquelle aus der Request holen (Standard in Typesetter Inline-Editing)
+		$current_src = isset($_REQUEST['src']) ? urldecode($_REQUEST['src']) : '';
+		if( empty($current_src) && !empty($_REQUEST['file']) ) {
+			$current_src = $_REQUEST['file'];
 		}
+
+		// Pfad relativ zum Upload-Verzeichnis machen (dirPrefix entfernen)
+		if( !empty($dirPrefix) && strpos($current_src, $dirPrefix) === 0 ) {
+			$current_src = substr($current_src, strlen($dirPrefix));
+		}
+
+		$init_w = '';
+		$init_h = '';
+
+		// 2. Tatsächliche Dateidimensionen mit getimagesize() ermitteln
+		if( !empty($current_src) && strpos($current_src, '/data/_uploaded') === 0 ) {
+			$full_path = $dataDir . $current_src;
+			if( file_exists($full_path) ) {
+				$size = @getimagesize($full_path);
+				if( $size !== false ) {
+					$init_w = (int)$size[0]; // Breite in Pixeln
+					$init_h = (int)$size[1]; // Höhe in Pixeln
+				}
+			}
+		}
+
+		//image options
+		ob_start();
+		echo '<div id="gp_current_image" class="inline_edit_area" title="'.$langmessage['edit'].'" style="position:relative;">';
+		
+		// WICHTIG: Datenattribute für JS + Inline-Script als zuverlässiger Fallback
+		echo '<span id="gp_image_wrap" data-init-w="'.$init_w.'" data-init-h="'.$init_h.'"><img/></span>';
+		if( $init_w > 0 && $init_h > 0 ) {
+			echo '<script>var gp_init_img_width = ' . $init_w . '; var gp_init_img_height = ' . $init_h . ';</script>';
+		}
+
+		echo '<table style="table-layout:fixed; width:100%;">';
+		
+		// Eingabefelder direkt mit den ermittelten Werten vorbelegen
+		echo '<tr><td>'.$langmessage['Width'].'</td><td><input type="text" name="width" class="ck_input" value="'.$init_w.'"/></td>';
+		echo '<td>'.$langmessage['Height'].'</td><td><input type="text" name="height" class="ck_input" value="'.$init_h.'"/></td>';
+		
+		echo '</tr>';
+		echo '<tr><td>'.$langmessage['Left'].'</td><td><input type="text" name="left" class="ck_input" value="0"/></td>';
+		echo '<td>'.$langmessage['Top'].'</td><td><input type="text" name="top" class="ck_input" value="0"/></td>';
+		echo '</tr>';
+		echo '<tr><td colspan="2" title="'.$langmessage['Alternative Text'].'" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'.$langmessage['Alternative Text'].'</td>';
+		echo '<td colspan="2"><input type="text" name="alt" style="width:calc(100% - 6px); display:block; text-align:left;" class="ck_input" value="' . $langmessage['Image'] . '"/></td></tr>';
+		echo '<tr><td><a data-cmd="deafult_sizes" class="ckeditor_control ck_reset_size" title="'.$langmessage['Theme_default_sizes'].'">&#10226;</a></td></tr>';
+		echo '</table>';
+		echo '</div>';
+
+		//select image
+		echo '<div id="gp_source_options" class="inline_edit_area" style="display:none" title="'.$langmessage['Select Image'].'">';
+
+		if( property_exists($obj,'curr_layout') ){
+			echo \gp\tool::Link('Admin_Theme_Content/Image/'.rawurlencode($obj->curr_layout),$langmessage['Theme Images'].'..','cmd=ShowThemeImages',' data-cmd="gpajax" class="ckeditor_control half_width" ');
+			echo '<a class="ckeditor_control half_width" data-cmd="show_uploaded_images">'.$langmessage['uploaded_files'].'</a>';
+		}
+
+		echo '<div id="gp_image_area"></div><div id="gp_upload_queue"></div>';
+
+		echo '<div id="gp_folder_options"></div>';
+		echo '</div>';
+		$content = ob_get_clean();
+
+
+		$page->ajaxReplace		= array();
+		$page->ajaxReplace[]	= array('inner','#ckeditor_top',$content);
+		$page->ajaxReplace[]	= array('image_options_loaded','',''); //tell the script the images have been loaded
+	}
+
+
+
+
 
 	}
 
