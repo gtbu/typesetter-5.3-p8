@@ -656,7 +656,7 @@ class Users extends \gp\special\Base{
 		}
 		echo '</select>';
 
-		echo ' &nbsp; <span class="sm text-muted">password_hash requires PHP 5.5+</span>';
+		echo ' &nbsp; <span class="sm text-muted">password_hash recommended</span>';
 
 		echo '</td></tr>';
 	}
