@@ -2636,3 +2636,21 @@ html.override_admin_style div.show-admin-ui {
 		transform: translate(0, 0) scale(1);
 	}
 }
+
+
+
+form#permission_form label.all_checkbox:has(input:not(:checked)) span.is_addon_perm {
+    background-color: #f0f0f0 !important;
+    color: #888888 !important;
+    border: 1px solid #ddd !important;
+    opacity: 0.6;
+}
+
+
+form#permission_form label.all_checkbox:has(input:checked) span.is_addon_perm {
+    background-color: #e8f4fe !important;
+    color: #084298 !important;
+    border: 1px solid #b6d4fe !important;
+    font-weight: bold;
+    opacity: 1;
+}

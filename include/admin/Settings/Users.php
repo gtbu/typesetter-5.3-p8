@@ -715,8 +715,10 @@ class Users extends \gp\special\Base{
             }
             $clean_label = trim(strip_tags($label));
             $title_attr = $addon_title ? $addon_title . ': ' . $clean_label : $clean_label;
-            echo '<span title="'.htmlspecialchars($title_attr).'">'.htmlspecialchars($clean_label).'</span>';
+            $addon_class = !empty($addon_title) ? ' is_addon_perm' : '';
+            echo '<span class="'.$addon_class.'" title="'.htmlspecialchars($title_attr).'">'.htmlspecialchars($clean_label).'</span>';
             echo '</label> ';
+
 		}
 
 		echo '</td></tr>';
@@ -916,3 +918,5 @@ class Users extends \gp\special\Base{
 		return $cleaned;
 	}
 }
+
+
