@@ -708,14 +708,15 @@ class Users extends \gp\special\Base{
 			}
 
 			echo '<label class="all_checkbox">';
-			echo '<input type="checkbox" name="grant[]" value="'.htmlspecialchars($permission).'" '.$checked.'/>';
-			$title_attr = trim(strip_tags($label));
-			preg_match('/title="(.*?)".*?>/si', $label, $matches); 
-			if(isset($matches[1])){
-				$title_attr = htmlspecialchars($matches[1]).': '.$title_attr;
-			}
-			echo '<span title="'.htmlspecialchars($title_attr).'">'.htmlspecialchars($label).'</span>';
-			echo '</label> ';
+            echo '<input type="checkbox" name="grant[]" value="'.htmlspecialchars($permission).'" '.$checked.'/>';
+            $addon_title = '';
+            if( preg_match('/title="(.*?)".*?>/si', $label, $matches) ){
+            $addon_title = htmlspecialchars($matches[1]);
+            }
+            $clean_label = trim(strip_tags($label));
+            $title_attr = $addon_title ? $addon_title . ': ' . $clean_label : $clean_label;
+            echo '<span title="'.htmlspecialchars($title_attr).'">'.htmlspecialchars($clean_label).'</span>';
+            echo '</label> ';
 		}
 
 		echo '</td></tr>';
