@@ -2,7 +2,8 @@
 
 defined('is_running') or die('Not an entry point...');
 
-require_once('EasyComments.php');
+global $addonPathCode;
+require_once($addonPathCode . '/EasyComments.php');
 
 class EasyComments_Gadget extends EasyComments{
 
