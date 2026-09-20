@@ -2,8 +2,12 @@
 
 defined('is_running') or die('Not an entry point...');
 
+// if (!defined('is_running')) {define('is_running', true); }
+
 global $addonPathCode;
 require_once($addonPathCode . '/EasyComments.php');
+
+echo  date("l jS \of F Y h:i:s A");
 
 class EasyComments_Gadget extends EasyComments{
 
@@ -12,7 +16,7 @@ class EasyComments_Gadget extends EasyComments{
 
 
 		echo '<div class="easy_comments_wrap">';
-		echo '<h2>Comments</h2>';
+		echo '<h4>Comments</h4>';
 
 		if( !$this->current_index ){
 			echo '<p>Comments are not available for this page</p>';
@@ -129,7 +133,7 @@ class EasyComments_Gadget extends EasyComments{
 
 		echo '<div class="easy_comments_comments">';
 		foreach($this->comment_data as $key => $comment){
-			echo '<div class="comment_area easy_comment_'.$this->current_index.'_'.$key.'">';
+			echo '<div style="background-color:#efefef" class="comment_area easy_comment_'.$this->current_index.'_'.$key.'">';
 			echo '<p class="name">';
 			if( ($this->config['commenter_website'] == 'nofollow') && !empty($comment['website']) ){
 				echo '<b><a href="'.$comment['website'].'" rel="nofollow">'.$comment['name'].'</a></b>';
