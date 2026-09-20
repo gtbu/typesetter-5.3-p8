@@ -208,13 +208,14 @@ class EasyComments_Gadget extends EasyComments{
 
 
 		echo '<form method="post" action="'.\gp\tool::GetUrl($this->current_title).'">';
+		echo '<input type="hidden" name="ecomment_nonce" value="'.htmlspecialchars(\gp\tool\Nonce::Create('ecomment_nonce',true)).'" />';
 		echo '<table>';
 		echo '<tr>';
 			echo '<td>';
 			echo '<div>';
 			echo \gp\tool\Output::GetAddonText('Name');
 			echo '</div>';
-			echo '<input type="text" name="name" class="text" value="'.htmlspecialchars($_POST['name']).'" />';
+			echo '<input type="text" name="name" class="text" value="'.htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" />';
 			echo '</td>';
 			echo '</tr>';
 
@@ -224,7 +225,7 @@ class EasyComments_Gadget extends EasyComments{
 				echo '<div>';
 				echo \gp\tool\Output::GetAddonText('Website');
 				echo '</div>';
-				echo '<input type="text" name="website" class="text" value="'.htmlspecialchars($_POST['website']).'" />';
+				echo '<input type="text" name="website" class="text" value="'.htmlspecialchars($_POST['website'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'" />';
 				echo '</td>';
 				echo '</tr>';
 		}
