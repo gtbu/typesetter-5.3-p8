@@ -201,7 +201,7 @@ class EasyComments_Gadget extends EasyComments{
 
 		$_POST += array('name'=>'','website'=>'http://','comment'=>'');
 
-		echo '<div class="easy_comment_form">';
+		echo '<div class="easy_comment_form"  style="margin-bottom:150px;">';
 		echo '<h3>';
 		echo \gp\tool\Output::GetAddonText('Leave Comment');
 		echo '</h3>';
