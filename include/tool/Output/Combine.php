@@ -5,6 +5,7 @@ namespace gp\tool\Output;
 defined('is_running') or die('Not an entry point...');
 
 includeFile('thirdparty/JShrink/autoload.php');
+
 #[\AllowDynamicProperties]
 class Combine{
 
