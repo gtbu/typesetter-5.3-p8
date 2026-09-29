@@ -199,14 +199,14 @@ namespace gp\tool {
             // Use $r (not undefined $args) for ignore_errors check
             if (!$r['ignore_errors'] && $errno) {
                 static::$debug['curl_error'] = curl_error($handle);
-                curl_close($handle);
+                unset($handle);
                 return false;
             }
 
             // if exec entirely failed and no body was collected
             if ($execResult === false && $this->body === '') {
                 static::$debug['curl_error'] = curl_error($handle);
-                curl_close($handle);
+                unset($handle);
                 return false;
             }
 
