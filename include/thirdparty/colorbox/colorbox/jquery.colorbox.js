@@ -184,9 +184,8 @@
 	previousCSS = {},
 	init;
 
-	// ****************
 	// HELPER FUNCTIONS
-	// ****************
+	
 
     function escapeHtml(text) {
       return String(text)
@@ -607,12 +606,10 @@
 	$(appendHTML);
 
 
-	// ****************
 	// PUBLIC FUNCTIONS
 	// Usage format: $.colorbox.close();
 	// Usage from within an iframe: parent.jQuery.colorbox.close();
-	// ****************
-
+	
 	publicMethod = $.fn[colorbox] = $[colorbox] = function (options, callback) {
 		var settings;
 		var $obj = this;
