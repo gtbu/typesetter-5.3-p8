@@ -1,36 +1,20 @@
 <?php
 /**
+ * Typesetter Safe JShrink-compatible Minifier
+ *
  * https://github.com/tedious/JShrink  BSD-3-Clause license
  * @author     Robert Hafner <tedivm@tedivm.com>
- * Compatibility goal:
- *   - Keeps the public JShrink API:
- *       \JShrink\Minifier::minify($js, $options)
- *   - Conservative: correctness is more important than compression.
- *   - Never performs semantic optimisations.
- *   - On any unexpected parsing problem, returns the original JavaScript.
- *
- *   modified for Typesetter5 Cms 9/2026
+ * 
+ * Kompatible API:
+ *   JShrink\Minifier::minify($js, $options = [])
  */
 
 namespace JShrink;
 
 class Minifier
 {
-    protected $input = '';
-    protected $len = 0;
-    protected $index = 0;
-    protected $options = [];
-
-    protected static $defaultOptions = [
-        'flaggedComments' => true,
-    ];
-
     /**
-     * Public API compatible with JShrink.
-     *
-     * The safe policy is:
-     *   - If minification succeeds, return the conservatively minified code.
-     *   - If anything unexpected happens, return the original input.
+     * Public JShrink-compatible API.
      */
     public static function minify($js, $options = [])
     {
@@ -38,237 +22,249 @@ class Minifier
             return $js;
         }
 
-        $original = $js;
-
         try {
-            $minifier = new self();
-            $result = $minifier->process($js, $options);
-            $minifier->clean();
+            $minifier = new self($js, is_array($options) ? $options : []);
+            $result = $minifier->process();
 
-            if (!is_string($result) || $result === '') {
-                return $original;
+            // Safety first: never replace the source with a larger result.
+            if (strlen($result) >= strlen($js)) {
+                return $js;
             }
 
             return $result;
         } catch (\Throwable $e) {
-            // PHP 7/8: catch both Exception and Error.
-            // Correctness is more important than compression.
-            if (isset($minifier)) {
-                $minifier->clean();
-            }
-
-            return $original;
+            // A safe minifier must fail open.
+            return $js;
         }
     }
 
-    protected function process($js, $options)
+    protected $input;
+    protected $length;
+    protected $index = 0;
+    protected $options = [];
+
+    protected $output = '';
+    protected $lastSignificant = '';
+    protected $pendingSpace = false;
+    protected $pendingNewline = false;
+
+    protected $keywords = [
+        'break', 'case', 'catch', 'continue', 'debugger', 'default',
+        'delete', 'do', 'else', 'finally', 'for', 'function', 'if',
+        'in', 'instanceof', 'new', 'return', 'switch', 'throw',
+        'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
+        'const', 'let', 'class', 'extends', 'super', 'import',
+        'export', 'await'
+    ];
+
+    public function __construct($js, array $options = [])
     {
-        $this->initialize($js, $options);
+        $this->input = $js;
+        $this->length = strlen($js);
+        $this->options = $options;
+    }
 
-        $out = '';
-        $pendingSpace = false;
-        $lastWasNewline = false;
+    /**
+     * Main scanner.
+     *
+     * This intentionally does much less than a traditional optimizer.
+     * It removes only whitespace/comments that can be handled safely.
+     */
+    protected function process()
+    {
+        while ($this->index < $this->length) {
+            $c = $this->input[$this->index];
 
-        while ($this->index < $this->len) {
-            $char = $this->input[$this->index];
-
-            // Normalize CRLF/CR to LF outside of protected constructs.
-            if ($char === "\r") {
-                $this->index++;
-                if ($this->index < $this->len && $this->input[$this->index] === "\n") {
-                    $this->index++;
-                }
-                $out .= "\n";
-                $pendingSpace = false;
-                $lastWasNewline = true;
-                continue;
-            }
-
-            // Preserve strings exactly.
-            if ($char === "'" || $char === '"') {
-                $this->flushPendingSpace($out, $pendingSpace, $lastWasNewline);
-                $out .= $this->readQuotedString($char);
-                $lastWasNewline = false;
-                continue;
-            }
-
-            // Preserve template literals exactly. This deliberately does not
-            // attempt to minify expressions inside ${...}; that is safer.
-            if ($char === '`') {
-                $this->flushPendingSpace($out, $pendingSpace, $lastWasNewline);
-                $out .= $this->readTemplateLiteral();
-                $lastWasNewline = false;
+            // Whitespace outside protected constructs.
+            if ($this->isWhitespace($c)) {
+                $this->consumeWhitespace();
                 continue;
             }
 
             // Comments.
-            if ($char === '/' && $this->peek(1) === '/') {
-                $comment = $this->readLineComment();
+            if ($c === '/' && $this->index + 1 < $this->length) {
+                $next = $this->input[$this->index + 1];
 
-                // A line comment is replaced by its line ending. This preserves
-                // automatic-semicolon-insertion boundaries.
-                if ($comment['newline']) {
-                    $out .= "\n";
-                    $pendingSpace = false;
-                    $lastWasNewline = true;
-                } else {
-                    // End-of-file line comment: preserve a separating space.
-                    $pendingSpace = true;
-                }
-                continue;
-            }
-
-            if ($char === '/' && $this->peek(1) === '*') {
-                $comment = $this->readBlockComment();
-
-                if ($comment['flagged'] && $this->options['flaggedComments']) {
-                    $this->flushPendingSpace($out, $pendingSpace, $lastWasNewline);
-                    $out .= $comment['text'];
-                    $lastWasNewline = $this->endsWithNewline($comment['text']);
+                if ($next === '/') {
+                    $this->consumeLineComment();
                     continue;
                 }
 
-                // A block comment is replaced with whitespace equivalent to
-                // its line structure. Never concatenate tokens accidentally.
-                if ($comment['newlines'] > 0) {
-                    $out .= str_repeat("\n", $comment['newlines']);
-                    $pendingSpace = false;
-                    $lastWasNewline = true;
-                } else {
-                    $pendingSpace = true;
+                if ($next === '*') {
+                    $this->consumeBlockComment();
+                    continue;
                 }
+            }
+
+            // Quoted strings.
+            if ($c === "'" || $c === '"') {
+                $this->flushPending();
+                $literal = $this->readQuotedString($c);
+                $this->appendRaw($literal);
                 continue;
             }
 
-            if ($char === "\n") {
+            // Template literals must be preserved byte-for-byte.
+            if ($c === '`') {
+                $this->flushPending();
+                $literal = $this->readTemplateLiteral();
+                $this->appendRaw($literal);
+                continue;
+            }
+
+            // Regex literal, handled conservatively.
+            if ($c === '/' && $this->looksLikeRegexStart()) {
+                $this->flushPending();
+                $regex = $this->readRegexLiteral();
+
+                if ($regex === null) {
+                    throw new \RuntimeException('Unable to safely parse regular expression literal.');
+                }
+
+                $this->appendRaw($regex);
+                continue;
+            }
+
+            // Ordinary source character.
+            $this->flushPending();
+            $this->appendRaw($c);
+            $this->lastSignificant = $c;
+            $this->index++;
+        }
+
+        // Trailing whitespace is never necessary in minified JS.
+        $this->pendingSpace = false;
+        $this->pendingNewline = false;
+
+        return $this->output;
+    }
+
+    protected function isWhitespace($c)
+    {
+        return $c === " " || $c === "\t" || $c === "\r" || $c === "\n" ||
+               $c === "\f" || $c === "\v";
+    }
+
+    protected function consumeWhitespace()
+    {
+        $hasNewline = false;
+
+        while ($this->index < $this->length) {
+            $c = $this->input[$this->index];
+
+            if ($c === "\n" || $c === "\r") {
+                $hasNewline = true;
+
+                if ($c === "\r" && $this->index + 1 < $this->length &&
+                    $this->input[$this->index + 1] === "\n") {
+                    $this->index += 2;
+                    continue;
+                }
+
                 $this->index++;
-                $out .= "\n";
-                $pendingSpace = false;
-                $lastWasNewline = true;
                 continue;
             }
 
-            // Horizontal whitespace: collapse it, but do not remove it yet.
-            // The final decision is made using the neighbouring tokens.
-            if ($this->isWhitespace($char)) {
+            if ($c === " " || $c === "\t" || $c === "\f" || $c === "\v") {
                 $this->index++;
-                $pendingSpace = true;
                 continue;
             }
 
-            /*
-             * Regex literals need special handling because // and /* inside a
-             * regex are not comments. We only enter regex mode when the
-             * preceding significant token makes a regex literal reasonably
-             * unambiguous. If it is not unambiguous, we do NOT guess.
-             */
-            if ($char === '/' && $this->looksLikeRegexStart($out)) {
-                $this->flushPendingSpace($out, $pendingSpace, $lastWasNewline);
-                $out .= $this->readRegexLiteral();
-                $lastWasNewline = false;
-                continue;
-            }
+            break;
+        }
 
-            $this->appendNormalChar(
-                $out,
-                $char,
-                $pendingSpace,
-                $lastWasNewline
-            );
+        if ($hasNewline) {
+            // Keep one newline. This preserves ASI-sensitive line boundaries,
+            // while collapsing runs of blank lines.
+            $this->pendingNewline = true;
+            $this->pendingSpace = false;
+        } else {
+            $this->pendingSpace = true;
+        }
+    }
+
+    protected function consumeLineComment()
+    {
+        $start = $this->index;
+        $this->index += 2;
+
+        while ($this->index < $this->length) {
+            $c = $this->input[$this->index];
+
+            if ($c === "\r" || $c === "\n") {
+                break;
+            }
 
             $this->index++;
         }
 
-        // Trailing horizontal whitespace has no value.
-        $out = rtrim($out, " \t");
+        // Preserve special line comments such as sourceURL/sourceMappingURL.
+        $comment = substr($this->input, $start, $this->index - $start);
 
-        return $out;
-    }
+        if ($this->isProtectedLineComment($comment)) {
+            $this->flushPending();
+            $this->appendRaw($comment);
+            $this->lastSignificant = '/';
 
-    protected function initialize($js, $options)
-    {
-        $this->input = $js;
-        $this->len = strlen($js);
-        $this->index = 0;
-        $this->options = array_merge(static::$defaultOptions, is_array($options) ? $options : []);
-    }
-
-    protected function clean()
-    {
-        $this->input = '';
-        $this->len = 0;
-        $this->index = 0;
-        $this->options = [];
-    }
-
-    protected function appendNormalChar(&$out, $char, &$pendingSpace, &$lastWasNewline)
-    {
-        if ($pendingSpace) {
-            $previous = $this->lastSignificantChar($out);
-
-            /*
-             * Keep a space when two identifier-like characters would otherwise
-             * become one token. This also covers $, Unicode letters and digits.
-             *
-             * For all other punctuation we remove the whitespace. This is safe
-             * for the conservative transformations performed here.
-             */
-            if ($this->needsSeparator($previous, $char)) {
-                $out .= ' ';
+            if ($this->index < $this->length) {
+                $this->consumeWhitespace();
             }
-
-            $pendingSpace = false;
-        }
-
-        $out .= $char;
-        $lastWasNewline = false;
-    }
-
-    protected function flushPendingSpace(&$out, &$pendingSpace, &$lastWasNewline)
-    {
-        if (!$pendingSpace) {
             return;
         }
 
-        $previous = $this->lastSignificantChar($out);
-
-        // Before a quoted/template string a separator is required when the
-        // previous character could merge with its opening delimiter only in
-        // syntactically meaningful contexts. Keep it when in doubt.
-        if ($previous !== '' && $this->isIdentifierChar($previous)) {
-            $out .= ' ';
-        }
-
-        $pendingSpace = false;
-        $lastWasNewline = false;
+        // Ordinary line comments can safely be replaced by a single newline.
+        $this->pendingNewline = true;
+        $this->pendingSpace = false;
     }
 
-    protected function needsSeparator($left, $right)
+    protected function consumeBlockComment()
     {
-        if ($left === '' || $right === '') {
+        $start = $this->index;
+        $end = strpos($this->input, '*/', $this->index + 2);
+
+        if ($end === false) {
+            throw new \RuntimeException('Unterminated block comment.');
+        }
+
+        $comment = substr($this->input, $start, $end + 2 - $start);
+        $this->index = $end + 2;
+
+        if ($this->isProtectedBlockComment($comment)) {
+            $this->flushPending();
+            $this->appendRaw($comment);
+            $this->lastSignificant = '*';
+            return;
+        }
+
+        // If a removed block comment contained newlines, retain one newline.
+        // This is enough for source separation/ASI while avoiding blank-line spam.
+        if (strpos($comment, "\n") !== false || strpos($comment, "\r") !== false) {
+            $this->pendingNewline = true;
+            $this->pendingSpace = false;
+        } else {
+            $this->pendingSpace = true;
+        }
+    }
+
+    protected function isProtectedLineComment($comment)
+    {
+        $trimmed = ltrim($comment);
+
+        return stripos($trimmed, '//# sourceURL=') === 0 ||
+               stripos($trimmed, '//@ sourceURL=') === 0 ||
+               stripos($trimmed, '//# sourceMappingURL=') === 0 ||
+               stripos($trimmed, '//@ sourceMappingURL=') === 0;
+    }
+
+    protected function isProtectedBlockComment($comment)
+    {
+        // Same convention used by JShrink for flagged comments.
+        if (isset($this->options['flaggedComments']) && $this->options['flaggedComments'] === false) {
             return false;
         }
 
-        if ($this->isIdentifierChar($left) && $this->isIdentifierChar($right)) {
-            return true;
-        }
-
-        // Numeric literal followed by a dot can change meaning.
-        if ($this->isDigit($left) && ($right === '.' || $right === 'e' || $right === 'E')) {
-            return true;
-        }
-
-        // + + and - - must not become ++ / --.
-        if (($left === '+' && $right === '+') || ($left === '-' && $right === '-')) {
-            return true;
-        }
-
-        // A slash next to another slash can start a comment.
-        if ($left === '/' && $right === '/') {
-            return true;
-        }
-
-        return false;
+        return isset($comment[2]) &&
+               ($comment[2] === '!' || (isset($comment[3]) && $comment[2] === '*' && $comment[3] === '@'));
     }
 
     protected function readQuotedString($quote)
@@ -276,139 +272,157 @@ class Minifier
         $start = $this->index;
         $this->index++;
 
-        while ($this->index < $this->len) {
+        while ($this->index < $this->length) {
             $c = $this->input[$this->index];
 
             if ($c === '\\') {
-                $this->index++;
-                if ($this->index < $this->len) {
-                    $this->index++;
-                }
+                $this->index += 2;
                 continue;
             }
 
+            $this->index++;
+
             if ($c === $quote) {
-                $this->index++;
                 return substr($this->input, $start, $this->index - $start);
             }
 
-            if ($c === "\n" || $c === "\r") {
-                throw new \RuntimeException('Unclosed JavaScript string at position ' . $start);
+            if ($c === "\r" || $c === "\n") {
+                throw new \RuntimeException('Unterminated string literal.');
             }
-
-            $this->index++;
         }
 
-        throw new \RuntimeException('Unclosed JavaScript string at position ' . $start);
+        throw new \RuntimeException('Unterminated string literal.');
     }
 
+    /**
+     * Preserve the entire template literal exactly.
+     *
+     * This is deliberately conservative. We do not attempt to minify
+     * expressions inside ${...}; doing so safely requires a JS parser.
+     */
     protected function readTemplateLiteral()
     {
         $start = $this->index;
         $this->index++;
+        $escaped = false;
 
-        while ($this->index < $this->len) {
+        while ($this->index < $this->length) {
             $c = $this->input[$this->index];
+
+            if ($escaped) {
+                $escaped = false;
+                $this->index++;
+                continue;
+            }
 
             if ($c === '\\') {
+                $escaped = true;
                 $this->index++;
-                if ($this->index < $this->len) {
-                    $this->index++;
-                }
                 continue;
             }
+
+            $this->index++;
 
             if ($c === '`') {
-                $this->index++;
                 return substr($this->input, $start, $this->index - $start);
             }
-
-            $this->index++;
         }
 
-        throw new \RuntimeException('Unclosed JavaScript template literal at position ' . $start);
+        throw new \RuntimeException('Unterminated template literal.');
     }
 
-    protected function readLineComment()
+    /**
+     * Conservative regex detection.
+     *
+     * A slash is considered a regex start only after tokens that cannot
+     * legally end an expression. If uncertain, return false and let the
+     * slash be emitted as ordinary JavaScript.
+     */
+    protected function looksLikeRegexStart()
     {
-        $start = $this->index;
-        $this->index += 2;
+        $prev = $this->previousSignificantCharacter();
 
-        while ($this->index < $this->len) {
-            $c = $this->input[$this->index];
-
-            if ($c === "\n" || $c === "\r") {
-                return [
-                    'text' => substr($this->input, $start, $this->index - $start),
-                    'newline' => true,
-                ];
-            }
-
-            $this->index++;
+        if ($prev === '') {
+            return true;
         }
 
-        return [
-            'text' => substr($this->input, $start, $this->index - $start),
-            'newline' => false,
-        ];
+        if (strpos("([{=,:;!&|?+-*%^~<>", $prev) !== false) {
+            return true;
+        }
+
+        // Keywords after which an expression is expected.
+        $word = $this->previousWord();
+
+        if ($word !== '' && in_array($word, $this->keywords, true)) {
+            return true;
+        }
+
+        return false;
     }
 
-    protected function readBlockComment()
+    protected function previousSignificantCharacter()
     {
-        $start = $this->index;
-        $this->index += 2;
-        $newlines = 0;
+        $i = $this->index - 1;
 
-        while ($this->index < $this->len) {
-            $c = $this->input[$this->index];
+        while ($i >= 0) {
+            $c = $this->input[$i];
 
-            if ($c === "\r") {
-                $newlines++;
-                $this->index++;
-                if ($this->index < $this->len && $this->input[$this->index] === "\n") {
-                    $this->index++;
-                }
-                continue;
+            if (!$this->isWhitespace($c)) {
+                return $c;
             }
 
-            if ($c === "\n") {
-                $newlines++;
-                $this->index++;
-                continue;
-            }
-
-            if ($c === '*' && $this->peek(1) === '/') {
-                $this->index += 2;
-                $text = substr($this->input, $start, $this->index - $start);
-
-                return [
-                    'text' => $text,
-                    'newlines' => $newlines,
-                    'flagged' => isset($text[2]) && ($text[2] === '!' || $text[2] === '@'),
-                ];
-            }
-
-            $this->index++;
+            $i--;
         }
 
-        throw new \RuntimeException('Unclosed multiline JavaScript comment at position ' . $start);
+        return '';
     }
 
+    protected function previousWord()
+    {
+        $i = $this->index - 1;
+
+        while ($i >= 0 && $this->isWhitespace($this->input[$i])) {
+            $i--;
+        }
+
+        $end = $i + 1;
+
+        while ($i >= 0 && preg_match('/[A-Za-z0-9_$]/', $this->input[$i])) {
+            $i--;
+        }
+
+        $start = $i + 1;
+
+        if ($start >= $end) {
+            return '';
+        }
+
+        return substr($this->input, $start, $end - $start);
+    }
+
+    /**
+     * Read a regex literal without modifying its contents.
+     */
     protected function readRegexLiteral()
     {
         $start = $this->index;
-        $this->index++; // leading /
+        $this->index++; // opening /
 
         $inClass = false;
+        $escaped = false;
 
-        while ($this->index < $this->len) {
+        while ($this->index < $this->length) {
             $c = $this->input[$this->index];
 
-            if ($c === '\\') {
+            if ($escaped) {
+                $escaped = false;
                 $this->index++;
-                if ($this->index < $this->len) {
-                    $this->index++;
-                }
+                continue;
+            }
+
+            if ($c === '\\') {
+                $escaped = true;
+                $this->index++;
                 continue;
             }
 
@@ -427,148 +441,95 @@ class Minifier
             if ($c === '/' && !$inClass) {
                 $this->index++;
 
-                // Preserve all regexp flags exactly.
-                while ($this->index < $this->len && $this->isRegexFlag($this->input[$this->index])) {
+                // Regex flags.
+                while ($this->index < $this->length &&
+                       preg_match('/[A-Za-z]/', $this->input[$this->index])) {
                     $this->index++;
                 }
 
                 return substr($this->input, $start, $this->index - $start);
             }
 
-            if ($c === "\n" || $c === "\r") {
-                throw new \RuntimeException('Unclosed regular expression at position ' . $start);
+            // A literal newline cannot occur inside a regular expression.
+            if ($c === "\r" || $c === "\n") {
+                return null;
             }
 
             $this->index++;
         }
 
-        throw new \RuntimeException('Unclosed regular expression at position ' . $start);
+        return null;
     }
 
-    protected function looksLikeRegexStart($out)
+    /**
+     * Emit pending whitespace conservatively.
+     */
+    protected function flushPending()
     {
-        $token = $this->previousToken($out);
-
-        if ($token === '') {
-            return true;
-        }
-
-        // Tokens after which JavaScript grammar permits a regexp literal.
-        static $regexAfter = [
-            '(' => true,
-            '[' => true,
-            '{' => true,
-            ',' => true,
-            ';' => true,
-            ':' => true,
-            '=' => true,
-            '==' => true,
-            '===' => true,
-            '!=' => true,
-            '!==' => true,
-            '!' => true,
-            '&' => true,
-            '&&' => true,
-            '|' => true,
-            '||' => true,
-            '?' => true,
-            '??' => true,
-            '=>' => true,
-            '+' => true,
-            '-' => true,
-            '*' => true,
-            '%' => true,
-            '&=' => true,
-            '|=' => true,
-            '^=' => true,
-            '+=' => true,
-            '-=' => true,
-            '*=' => true,
-            '/=' => true,
-            '%=' => true,
-            'return' => true,
-            'throw' => true,
-            'case' => true,
-            'delete' => true,
-            'void' => true,
-            'typeof' => true,
-            'instanceof' => true,
-            'in' => true,
-            'of' => true,
-            'yield' => true,
-            'await' => true,
-            'new' => true,
-        ];
-
-        return isset($regexAfter[$token]);
-    }
-
-    protected function previousToken($out)
-    {
-        $s = rtrim($out);
-
-        if ($s === '') {
-            return '';
-        }
-
-        // Identifier / keyword.
-        if (preg_match('/(?:[$A-Z_a-z\x80-\xFF][\w$]*|\d+(?:\.\d+)?)$/u', $s, $m)) {
-            return $m[0];
-        }
-
-        // Operators / punctuation, longest first.
-        foreach ([
-            '===', '!==', '>>>', '**=', '&&=', '||=', '??=',
-            '=>', '==', '!=', '<=', '>=', '++', '--', '&&', '||',
-            '??', '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=',
-            '**', '<<', '>>', '?.'
-        ] as $op) {
-            if (substr($s, -strlen($op)) === $op) {
-                return $op;
+        if ($this->pendingNewline) {
+            // A newline is only useful if both sides contain code.
+            // Never emit multiple newlines.
+            if ($this->output !== '') {
+                $this->output .= "\n";
             }
+
+            $this->pendingNewline = false;
+            $this->pendingSpace = false;
+            return;
         }
 
-        return substr($s, -1);
+        if ($this->pendingSpace) {
+            $next = $this->input[$this->index] ?? '';
+
+            if ($this->needsSpace($this->lastSignificant, $next)) {
+                $this->output .= ' ';
+            }
+
+            $this->pendingSpace = false;
+        }
     }
 
-    protected function lastSignificantChar($out)
+    protected function needsSpace($previous, $next)
     {
-        $out = rtrim($out, " \t");
-        return $out === '' ? '' : substr($out, -1);
-    }
-
-    protected function peek($offset = 1)
-    {
-        $pos = $this->index + $offset;
-        return $pos < $this->len ? $this->input[$pos] : false;
-    }
-
-    protected function isWhitespace($char)
-    {
-        return $char === ' ' || $char === "\t" || $char === "\f" || $char === "\v";
-    }
-
-    protected function isDigit($char)
-    {
-        return $char !== '' && $char >= '0' && $char <= '9';
-    }
-
-    protected function isIdentifierChar($char)
-    {
-        if ($char === '' || $char === false) {
+        if ($previous === '' || $next === '') {
             return false;
         }
 
-        return preg_match('/^[\w$]$/u', $char) === 1 || ord($char) >= 128;
+        // Word/identifier boundaries.
+        if ($this->isIdentifierCharacter($previous) &&
+            $this->isIdentifierCharacter($next)) {
+            return true;
+        }
+
+        // Prevent accidental ++ / -- creation.
+        if (($previous === '+' && $next === '+') ||
+            ($previous === '-' && $next === '-')) {
+            return true;
+        }
+
+        // Prevent HTML-comment-like sequences.
+        if ($previous === '<' && $next === '!') {
+            return true;
+        }
+
+        return false;
     }
 
-    protected function isRegexFlag($char)
+    protected function isIdentifierCharacter($c)
     {
-        return $char !== false && preg_match('/^[A-Za-z]$/', $char) === 1;
+        return $c !== '' && preg_match('/[A-Za-z0-9_$]/', $c);
     }
 
-    protected function endsWithNewline($text)
+    protected function appendRaw($text)
     {
-        return $text !== '' && substr($text, -1) === "\n";
+        $this->output .= $text;
+
+        if ($text !== '') {
+            $last = $text[strlen($text) - 1];
+
+            if (!$this->isWhitespace($last)) {
+                $this->lastSignificant = $last;
+            }
+        }
     }
 }
