@@ -428,7 +428,7 @@ $(function(){
 		/**
 	 *	Handle AJAX errors
 	*/
-	$document.ajaxError(function(event, XMLHttpRequest, ajaxOptions, thrownError){
+	$document.on('ajaxError', function(event, XMLHttpRequest, ajaxOptions, thrownError){
 		$gp.loaded();
 
 		if( XMLHttpRequest.statusText == 'abort' ){
@@ -448,11 +448,11 @@ $(function(){
 		};
 		var detail_keys = ['name', 'message', 'fileName', 'lineNumber', 'columnNumber', 'stack'];
 		for(var i = 0; i < detail_keys.length; i++){
-			if( thrownError.hasOwnProperty(detail_keys[i]) ){
+			if( Object.prototype.hasOwnProperty.call(thrownError, detail_keys[i]) ){
 				debug_info[detail_keys[i]] = thrownError[detail_keys[i]];
 			}
 		}
-		if( thrownError.hasOwnProperty('lineNumber') ){
+		if( Object.prototype.hasOwnProperty.call(thrownError, 'lineNumber') ){
 			var num					= thrownError.lineNumber;
 			var lines				= XMLHttpRequest.responseText.split('\n');
 			debug_info['Line-' + (num-1)]	= lines[num - 2];
@@ -466,7 +466,7 @@ $(function(){
 		debug_info.browser			= navigator.userAgent;
 		debug_info.responseText		= XMLHttpRequest.responseText;
 		if( ajaxOptions.data ){
-			debug_info.ajaxdata		= ajaxOptions.data.substr(0, 100);
+			debug_info.ajaxdata		= String(ajaxOptions.data).substr(0, 100);
 		}
 
 		if( window.console && console.log ){
@@ -487,20 +487,10 @@ $(function(){
 					.replace(/'/g, "&#039;");
 			}
 
-			var dialog_content =
-				'<div class="inline_box">' +
-					'<h3>AJAX Request Error</h3>' +
-					'<p>' + $gp.error + ' See details below and in your browser\'s developer console (F12).</p>' +
-					'<div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; background: #f5f5f5; padding: 10px; margin-top:15px;">' +
-						'<pre style="white-space: pre-wrap; word-wrap: break-word;">' +
-							'<code>' + escapeHtml(formatted_debug) + '</code>' +
-						'</pre>' +
-					'</div>' +
-				'</div>';
+			var dialog_content = '<div class="inline_box"><h3>AJAX Request Error</h3><p>' + $gp.error + ' See details below and in your browser\'s developer console (F12).</p><div style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; background: #f5f5f5; padding: 10px; margin-top:15px;"><pre style="white-space: pre-wrap; word-wrap: break-word;"><code>' + escapeHtml(formatted_debug) + '</code></pre></div></div>';
 
-			$gp.AdminBoxC(dialog_content);
-
-		}else{
+            $gp.AdminBoxC(dialog_content);
+        }else{
 			alert($gp.error + '\n\nAn AJAX error occurred. Check the browser console for more details.');
 		}
 	});
@@ -589,7 +579,7 @@ $(function(){
 
 
 	/**
-	 * Handle all clicks on <a> tags
+	 * Handle all clicks on a tags
 	 * Use of name and rel attributes is deprecated as of gpEasy 3.6
 	 *
 	 */
@@ -657,16 +647,16 @@ $(function(){
 				break;
 
 			case 'copy_message':
-				var msg_text = $this.closest('div').find('ul')
-					.get(0).innerText; // innerText preserves line breaks
-				var $tmp = $('<textarea>')
-					.appendTo($this.closest('div'))
-					.val(msg_text);
-				$tmp.get(0).select();
-				$tmp.get(0).setSelectionRange(0, 99999);
-				document.execCommand('copy');
-				$tmp.remove();
-				break;
+                var msg_text = $this.closest('div').find('ul').get(0).innerText;
+                var $tmp = $(document.createElement('textarea'))
+                .appendTo($this.closest('div'))
+                .val(msg_text);
+        
+                $tmp.get(0).select();
+                $tmp.get(0).setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                $tmp.remove();
+                break;
 
 			case 'hide_ui':
 				$gp.HideAdminUI.toggle(true);
