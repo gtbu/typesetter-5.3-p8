@@ -112,7 +112,7 @@ namespace gp\tool {
                 }
 
                 static::$debug['Method'] = $method;
-                static::$debug['Len'] = strlen($result['body'] ?? '');
+                static::$debug['Len'] = strlen(isset($result['body']) ? $result['body'] : '');
                 return $result;
             }
 
@@ -154,7 +154,9 @@ namespace gp\tool {
                         $curlHeaders[] = $hk . ': ' . $hv;
                     }
                 } else {
-                    $curlHeaders = $r['headers'];
+                    foreach ($r['headers'] as $headerLine) {
+                        $curlHeaders[] = $headerLine;
+                    }
                 }
             }
 
@@ -179,8 +181,8 @@ namespace gp\tool {
                 curl_setopt($handle, CURLOPT_HTTPHEADER, $curlHeaders);
             }
 
-            if (!empty($r['data'])) {
-                // Allow both array and string data
+            if (isset($r['data']) && $r['data'] !== null && $r['data'] !== '') {
+                // Allow both array and string data.
                 curl_setopt($handle, CURLOPT_POSTFIELDS, $r['data']);
                 if (strtoupper($r['method']) === 'POST') {
                     curl_setopt($handle, CURLOPT_POST, true);
@@ -211,7 +213,7 @@ namespace gp\tool {
             }
 
             $curlInfo = curl_getinfo($handle);
-            //curl_close($handle);
+            curl_close($handle);
 
             // Process raw headers captured in $this->headers
             $processedHeaders = static::processHeaders($this->headers);
@@ -309,9 +311,17 @@ namespace gp\tool {
             if( !empty($r['headers']) && is_array($r['headers']) ){
                 $arrContext['http']['header'] = '';
                 foreach($r['headers'] as $hk => $hv){
-                    $arrContext['http']['header'] .= $hk.': '.$hv."\r\n";
+                    if( is_int($hk) ){
+                        $arrContext['http']['header'] .= $hv."\r\n";
+                    }else{
+                        $arrContext['http']['header'] .= $hk.': '.$hv."\r\n";
+                    }
                 }
                 $arrContext['http']['header'] = trim($arrContext['http']['header']);
+            }
+
+            if( isset($r['data']) && $r['data'] !== null && $r['data'] !== '' ){
+                $arrContext['http']['content'] = is_array($r['data']) ? http_build_query($r['data']) : $r['data'];
             }
 
             return $arrContext;
@@ -376,9 +386,10 @@ namespace gp\tool {
             $iError = null;
             $strError = null;
 
-            $port = !empty($this->url_array['port']) ? (int)$this->url_array['port'] : 80;
-
-            $handle = fsockopen($fsockopen_host, $port, $iError, $strError, $r['timeout']);
+            $scheme = isset($this->url_array['scheme']) ? strtolower($this->url_array['scheme']) : 'http';
+            $port = !empty($this->url_array['port']) ? (int)$this->url_array['port'] : ($scheme === 'https' ? 443 : 80);
+            $transport = $scheme === 'https' ? 'ssl://' : '';
+            $handle = fsockopen($transport.$fsockopen_host, $port, $iError, $strError, $r['timeout']);
 
             if( $handle === false ){
                 static::$debug['fsock'] = 'no handle';
@@ -427,7 +438,15 @@ namespace gp\tool {
                 }
             }
 
-            $strHeaders .= "\r\n";
+            if( isset($r['data']) && $r['data'] !== '' ){
+                $data = is_array($r['data']) ? http_build_query($r['data'], '', '&') : (string)$r['data'];
+                if( stripos($strHeaders, 'Content-Length:') === false ){
+                    $strHeaders .= 'Content-Length: ' . strlen($data) . "\r\n";
+                }
+                $strHeaders .= "\r\n" . $data;
+            }else{
+                $strHeaders .= "\r\n";
+            }
             return $strHeaders;
         }
 
@@ -435,7 +454,10 @@ namespace gp\tool {
             $response = '';
             while( !feof($handle) ){
                 $response .= fread($handle, 4096);
-                if( static::$maxlength > -1 && strlen($response) > static::$maxlength ){
+                if( static::$maxlength > -1 && strlen($response) >= static::$maxlength ){
+                    if( strlen($response) > static::$maxlength ){
+                        $response = substr($response, 0, static::$maxlength);
+                    }
                     break;
                 }
             }
@@ -465,7 +487,7 @@ namespace gp\tool {
                 return $this->Redirect($redir_location,$r);
             }
 
-            if( isset($processedHeaders['headers']['content-encoding']) && $processedHeaders['headers']['content-encoding'] == 'gzip' ){
+            if( isset($processedHeaders['headers']['content-encoding']) && strtolower(is_array($processedHeaders['headers']['content-encoding']) ? end($processedHeaders['headers']['content-encoding']) : $processedHeaders['headers']['content-encoding']) == 'gzip' ){
                 $this->Inflate();
             }
 
@@ -543,9 +565,13 @@ namespace gp\tool {
                 unset($urla['query'], $urla['fragment']);
 
                 if( empty($urla['path']) || $urla['path'] == '/' ){
-                    $urla['path'] = $location;
+                    $urla['path'] = '/'.ltrim($location, '/');
                 }else{
-                    $urla['path'] = rtrim($urla['path'], '/') . '/' . ltrim($location, '/');
+                    $basePath = $urla['path'];
+                    if( substr($basePath, -1) !== '/' ){
+                        $basePath = dirname($basePath).'/';
+                    }
+                    $urla['path'] = $basePath.ltrim($location, '/');
                 }
 
                 $location = static::unparse_url($urla);
@@ -621,7 +647,7 @@ namespace gp\tool {
             if( empty($body) ){
                 return false;
             }
-            if( !isset($headers['headers']['transfer-encoding']) || 'chunked' != $headers['headers']['transfer-encoding'] ){
+            if( !isset($headers['headers']['transfer-encoding']) || stripos(is_array($headers['headers']['transfer-encoding']) ? implode(',', $headers['headers']['transfer-encoding']) : $headers['headers']['transfer-encoding'], 'chunked') === false ){
                 return false;
             }
             if( !preg_match('/^([0-9a-f]+)[^\r\n]*\r\n/i',$body) ){
@@ -631,35 +657,50 @@ namespace gp\tool {
             return true;
         }
 
-        public static function StreamHeaders($handle = null, bool $parseAsAssociative = false): array {
+        public static function StreamHeaders($handle = null, $parseAsAssociative = false) {
             $rawHeaders = array();
 
             if( is_array($handle) ){
                 $rawHeaders = $handle;
             }elseif( is_resource($handle) ){
                 $meta = stream_get_meta_data($handle);
-                if( isset($meta['wrapper_data']) && is_array($meta['wrapper_data']) ){
-                    $rawHeaders = $meta['wrapper_data'];
+                if( isset($meta['wrapper_data']) ){
+                    $rawHeaders = is_array($meta['wrapper_data']) ? $meta['wrapper_data'] : array($meta['wrapper_data']);
+                    if( isset($meta['wrapper_data']['headers']) && is_array($meta['wrapper_data']['headers']) ){
+                        $rawHeaders = $meta['wrapper_data']['headers'];
+                    }
+                }
+
+                if( empty($rawHeaders) && function_exists('http_get_last_response_headers') ){
+                    $lastHeaders = http_get_last_response_headers();
+                    if( is_array($lastHeaders) ){
+                        $rawHeaders = $lastHeaders;
+                    }
+                    if( function_exists('http_clear_last_response_headers') ){
+                        http_clear_last_response_headers();
+                    }
                 }
             }
 
             return $parseAsAssociative ? self::parseRawHeaders($rawHeaders) : $rawHeaders;
         }
 
-        private static function parseRawHeaders(array $headers): array {
+        private static function parseRawHeaders($headers) {
             $parsed = array();
             foreach( $headers as $header ){
                 if( !is_string($header) ){
                     continue;
                 }
 
-                if( str_starts_with($header, 'HTTP/') || str_starts_with($header, ':') ){
+                if( strpos($header, 'HTTP/') === 0 || strpos($header, ':') === 0 ){
                     $parsed['status'] = $header;
                     continue;
                 }
 
-                if( str_contains($header, ':') ){
-                    [$key, $value] = explode(':', $header, 2);
+                if( strpos($header, ':') !== false ){
+                    $parts = explode(':', $header, 2);
+                    $key = $parts[0];
+                    $value = isset($parts[1]) ? $parts[1] : '';
                     $key = strtolower(trim($key));
                     $value = trim($value);
                     $parsed[$key][] = $value;
@@ -671,15 +712,15 @@ namespace gp\tool {
             }, $parsed);
         }
 
-        public static function processResponse(string $strResponse): array {
+        public static function processResponse($strResponse) {
             $parts = explode("\r\n\r\n", $strResponse, 2);
             if( count($parts) === 1 ){
                 $parts = explode("\n\n", $parts[0], 2);
             }
 
             return array(
-                'headers' => $parts[0] ?? '',
-                'body' => $parts[1] ?? '',
+                'headers' => isset($parts[0]) ? $parts[0] : '',
+                'body' => isset($parts[1]) ? $parts[1] : '',
             );
         }
 
@@ -702,7 +743,7 @@ namespace gp\tool {
                 if( false === strpos((string)$tempheader, ':') ){
                     $stack = explode(' ', trim((string)$tempheader), 3);
                     $response['code'] = isset($stack[1]) ? (int)$stack[1] : 0;
-                    $response['message'] = $stack[2] ?? '';
+                    $response['message'] = isset($stack[2]) ? $stack[2] : '';
                     continue;
                 }
 
