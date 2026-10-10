@@ -984,6 +984,21 @@ class Edit extends \gp\Page{
 			],
 			'default', // file_under, req as of TS 5.2
 		];
+		
+		//section combo: text & image 9-3
+		$links[] = [
+			['text.gpCol-8', 'image.gpCol-3'],
+	    \gp\tool::GetDir('/include/imgs/section-combo-text-image-9-3.png'),
+	    [
+		'gp_label'		=> 'Text 9 &amp; Bild 3',
+		'gp_color'		=> '#555',
+		'attributes'	=> [
+			'class'		=> 'gpRow',
+		],
+	    ],
+	    'default',
+        ];
+		
 
 		//section combo: text & gallery
 		$links[] = [
