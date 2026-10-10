@@ -987,7 +987,7 @@ class Edit extends \gp\Page{
 		
 		//section combo: text & image 9-3
 		$links[] = [
-			['text.gpCol-8', 'image.gpCol-3'],
+			['text.gpCol-9', 'image.gpCol-3'],
 	    \gp\tool::GetDir('/include/imgs/section-combo-text-image-9-3.png'),
 	    [
 		'gp_label'		=> 'Text 9 &amp; Bild 3',
