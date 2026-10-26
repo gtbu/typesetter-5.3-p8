@@ -856,8 +856,13 @@ use function \intltime\strftime;
 			$dir = $dirPrefix . '/' . ltrim($dir, '/');
 			return self::HrefEncode($dir, $ampersands) . $query;
 		}
-
-
+         
+		/** $dirPrefix includes the installation-path - directory **/
+        public static function GetRoot($dir = '', $ampersands = false){
+            $dir = '/' . ltrim($dir, '/');
+            return self::HrefEncode($dir, $ampersands);
+        }
+		
 		/**
 		 * Get the label for a page from it's index
 		 * @param string $index
