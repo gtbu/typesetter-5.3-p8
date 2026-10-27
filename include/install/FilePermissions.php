@@ -7,14 +7,14 @@ defined('is_running') or die('Not an entry point...');
 class FilePermissions{
 
 	public static function GetExpectedPerms($file){
-		return static::_GetExpectedPerms($file, ['755','775','777']);
+		return static::_GetExpectedPerms($file, ['755','755','755']);
 	}
 
 	public static function GetExpectedPerms_file($file){
-		return static::_GetExpectedPerms($file, ['644','664','666']);
+		return static::_GetExpectedPerms($file, ['644','664','664']);
 	}
 
-	public static function _GetExpectedPerms($file, $expected = ['644','664','666'] ){
+	public static function _GetExpectedPerms($file, $expected = ['644','664','664'] ){
 
 		$file_info		= self::file_info($file);
 
