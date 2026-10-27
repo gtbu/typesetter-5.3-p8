@@ -430,7 +430,7 @@ echo '</p>';
 		// Safe by default: do not copy, rename, delete, chmod or chown files from a
 		// GET-style admin link. Display a message and let the administrator review
 		// the Current/Expected permission modes shown in the table.
-		$message = 'Automatische Reparatur wurde aus Sicherheitsgründen deaktiviert. Bitte aktuelle und erwartete Rechte prüfen und Rechte bei Bedarf über Hosting/SSH korrigieren.';
+		$message = 'Automatic repair has been disabled for security reasons. Please check the current and expected permissions, and correct them if necessary via hosting/SSH.';
 		echo '<div class="gp_notice">' . htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</div>';
 	}}
 
@@ -442,7 +442,4 @@ if (!function_exists('msg')) {
 	}
 }
 
-// gp\tool::GetCommand(), gp\tool::Link(), gp\tool\Files::*, gp\tool\FileSystem::*,
-// gp\install\FilePermissions::*, gp\admin\Tools\Port::*, gp_is_writable()
-// and globals $langmessage, $dataDir, $gp_index
-// MUST all be defined and compatible with PHP 8.4 elsewhere in your application.
+
