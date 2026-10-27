@@ -17,6 +17,10 @@ class FilePermissions{
 	public static function _GetExpectedPerms($file, $expected = ['644','664','664'] ){
 
 		$file_info		= self::file_info($file);
+		
+		if( is_dir($file) ){
+        return '755';
+        }
 
 		//if user id's match
 		if( isset($file_info['uid']) ){
