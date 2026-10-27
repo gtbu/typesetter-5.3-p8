@@ -54,8 +54,8 @@ class Uninstall{
 		global $dataDir;
 
 		$chmodDir = $dataDir.'/data';
-		$this->DirPermission = 0777; //0755;
-		$this->FilePermission = 0666; //0644; //0600 is too restrictive
+		$this->DirPermission = 0755; //0777;
+		$this->FilePermission = 0664; //0666; 0600 is too restrictive
 		$this->chmoddir($chmodDir);
 		msg('The file permissions have been updated.');
 	}
