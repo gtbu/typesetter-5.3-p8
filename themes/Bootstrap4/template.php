@@ -12,7 +12,7 @@ global $page;
  */
 $page->head_js[] = dirname(rawurldecode($page->theme_path)) . '/_common/script.js';
 $page->head_js[] = dirname(rawurldecode($page->theme_path)) . '/_common/menu.js';
-
+common::LoadComponents('bt5-icon-css');
 
 /**
  * Include template.php from the current layout subdirectory

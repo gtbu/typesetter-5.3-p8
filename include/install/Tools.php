@@ -255,25 +255,39 @@ class Tools{
 		$_config['etag_headers']			= self::BooleanValue('etag_headers', true);
 		$_config['gallery_legacy_style']	= false;
 		$_config['language']				= 'en';
-		$_config['admin_links']				= [];
-		$_config['addons']					= [
-			'Bootstrap4' => [
-				'code_folder_part' => '/themes/Bootstrap4',
-				'data_folder' => 'Bootstrap4',
-				'name' => 'Bootstrap 4',
-				'version' => '1.0',
-				'is_theme' => true,
-			],
-		];
-		$_config['hooks']					= [
-			'AvailableClasses' => [
-				'Bootstrap4' => [
-					'addon'		=> 'Bootstrap4',
-					'script'	=> '/themes/Bootstrap4/addon.php',
-					'method'	=> [ 'Theme_Bootstrap4', 'AvailableClasses' ],
-				],
-			],
-		];
+		$_config['admin_links']				= [];		
+		$_config['addons'] = [
+        'Bootstrap4' => [
+        'code_folder_part' => '/themes/Bootstrap4',
+        'data_folder' => 'Bootstrap4',
+        'name' => 'Bootstrap 4',
+        'version' => '1.1',
+        'is_theme' => true,
+        ],
+        // NEW: Second Theme Bootstrap 5
+        'Bootstrap5' => [
+        'code_folder_part' => '/themes/Bootstrap5',
+        'data_folder' => 'Bootstrap5',
+        'name' => 'Bootstrap 5',
+        'version' => '1.0',
+        'is_theme' => true,
+        ],
+        ];		
+		$_config['hooks'] = [
+        'AvailableClasses' => [
+        'Bootstrap4' => [
+            'addon'     => 'Bootstrap4',
+            'script'    => '/themes/Bootstrap4/addon.php',
+            'method'    => [ 'Theme_Bootstrap4', 'AvailableClasses' ],
+        ],
+        // NEW: Hook-Registration for Bootstrap 5
+        'Bootstrap5' => [
+            'addon'     => 'Bootstrap5',
+            'script'    => '/themes/Bootstrap5/addon.php',
+            'method'    => [ 'Theme_Bootstrap5', 'AvailableClasses' ],
+        ],
+        ],
+        ];
 
 		$config 							+= $_config;
 
@@ -474,12 +488,12 @@ class Tools{
 
 		//Header Social Media
 		$file		= $destination . '/data/_extra/Header_SocialMedia/page.php';
-		$content	= '<a title="Twitter" class="fa fa-twitter" target="blank" href="https://twitter.com">&zwnj;</a>
-		<a title="facebook" class="fa fa-facebook" target="blank" href="https://www.facebook.com">&zwnj;</a>
-		<a title="Instagram" class="fa fa-instagram" target="blank" href="https://www.instagram.com">&zwnj;</a>
-		<a title="LinkedIn" class="fa fa-linkedin-square" target="blank" href="https://www.linkedin.com">&zwnj;</a>
-		<a title="YouTube" class="fa fa-youtube" target="blank" href="https://www.youtube.com">&zwnj;</a>
-		<a title="Skype" class="fa fa-skype" target="blank" href="https://www.skype.com">&zwnj;</a>';
+		$content	= '<a title="Twitter" class="bi bi-twitter-x" target="_blank" href="https://x.com">&zwnj;</a>
+        <a title="Facebook" class="bi bi-facebook" target="_blank" href="https://www.facebook.com">&zwnj;</a>
+        <a title="Instagram" class="bi bi-instagram" target="_blank" href="https://www.instagram.com">&zwnj;</a>
+        <a title="LinkedIn" class="bi bi-linkedin" target="_blank" href="https://www.linkedin.com">&zwnj;</a>
+        <a title="YouTube" class="bi bi-youtube" target="_blank" href="https://www.youtube.com">&zwnj;</a>
+        <a title="Skype" class="bi bi-skype" target="_blank" href="https://www.skype.com">&zwnj;</a>';
 		self::NewExtra($file, $content);
 
 		//Side_Menu
