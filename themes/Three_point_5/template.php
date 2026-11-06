@@ -2,7 +2,6 @@
 <html>
 <head>
 <meta charset="UTF-8" />
-<link href='https://fonts.googleapis.com/css?family=Courgette' rel='stylesheet' type='text/css'>
 <?php gpOutput::GetHead(); ?>
 
 </head><body><div id="wrapper">
