@@ -1,0 +1,26 @@
+// Theme Bootstrap 4
+// Layout stylesheet
+//
+// Instead of Autoprefixer we use vendor-prefix mixins,
+// see https://github.com/Typesetter/Typesetter/blob/master/include/thirdparty/Bootstrap4/VP-MIXINS.md
+//
+
+// ### Import Bootstrap Scss ###
+@import 'include/thirdparty/Bootstrap5.3/scss/_bootstrap.scss';
+
+// ### Commmon imports ###
+@import '../_common/common_style.scss';
+@import '../_common/contact_form.scss';
+@import '../_common/search.scss';
+
+
+footer.main-footer{
+  color: #212529 !important;
+  background-color: #e9ecef !important;
+  }
+
+// ### Imports ###
+@import 'footer_nav.scss';
+
+// ### Customizer ###
+@import 'customizer.scss';

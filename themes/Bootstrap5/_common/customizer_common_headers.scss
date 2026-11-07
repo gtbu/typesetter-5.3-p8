@@ -1,0 +1,383 @@
+// Theme Bootstrap 4
+//
+// common stylesheet for header rendering
+// will be imported by customizer.scss
+//
+
+
+//defaults
+$complementary_header_show:					off !default;
+$complementary_header_fixed:				off !default;
+$complementary_header_height:				46px !default;
+$complementary_header_color:				#ffffff !default;
+$complementary_header_bg:					#212529 !default;
+$complementary_header_border_bottom_width:	0px !default;
+$complementary_header_border_bottom_color:	rgba(0, 0, 0, 0) !default;
+
+$header_sticky:								off !default;
+$header_height:								72px !default;
+$header_color:								#ffffff !default;
+$header_bg:									#343a40 !default;
+$header_border_bottom_width:				0px !default;
+$header_border_bottom_color:				rgba(0, 0, 0, 0) !default;
+
+$header_brand_color:						#ffffff !default;
+$header_brand_logo_height:					100% !default;
+
+
+// css vars/properties
+html {
+	--complementary_header_show:				#{$complementary_header_show};
+	--complementary_header_fixed:				#{$complementary_header_fixed};
+	--complementary_header_height:				#{$complementary_header_height};
+	--complementary_header_color:				#{$complementary_header_color};
+	--complementary_header_bg:					#{$complementary_header_bg};
+	--complementary_header_border_bottom_width:	#{$complementary_header_border_bottom_width};
+	--complementary_header_border_bottom_color:	#{$complementary_header_border_bottom_color};
+
+	--header_sticky:							#{$header_sticky};
+	--header_height:							#{$header_height};
+	--header_color:								#{$header_color};
+	--header_bg:								#{$header_bg};
+	--header_border_bottom_width:				#{$header_border_bottom_width};
+	--header_border_bottom_color:				#{$header_border_bottom_color};
+
+	--header_brand_color:						#{$header_brand_color};
+	--header_brand_logo_height:					#{$header_brand_logo_height};
+}
+
+
+// calculations
+$abh:	30px;			// admin bar height
+$hh:	$header_height; // header height, defaults to 72px;
+$chh:	0;				// complementary header height, defaults to 46px, 0 if hidden
+
+@if ( $complementary_header_show != off ) {
+	$chh:	$complementary_header_height; // if visible defaults to 46px;
+}
+$sidebar-expand-breakpoint: lg !default; // required here to avoid scss errors
+
+@mixin display-headers($breakpoint){
+
+	$ch_class: "d-none.d-" + #{$breakpoint} + "-block";
+	@if $breakpoint == xs {
+		$ch_class: d-block;
+	}
+
+	@include media-breakpoint-up($breakpoint) {
+		header.complementary-header.#{$ch_class} {
+			~ header.main-header {
+				top: $chh;
+			}
+			~ div.main-body {
+				margin-top: $chh;
+
+				.sidebar {
+					//.sidebar-container {
+					//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+					//		 margin-top: $chh;
+					//	}
+					//}
+				&.sidebar-sticky {
+						.sidebar-container {
+							@include media-breakpoint-up($sidebar-expand-breakpoint) {
+								margin-top: 0;
+								top: $chh;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	&.gpAdmin:not(.override_admin_style):not(.edit_layout) {
+		@include media-breakpoint-up($breakpoint) {
+			header.complementary-header.#{$ch_class} {
+				top: $abh;
+				~ div.main-body {
+					.sidebar {
+						//.sidebar-container {
+						//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+						//		margin-top: calc( #{$abh} + #{$chh} );
+						//	}
+						//}
+						&.sidebar-sticky {
+							.sidebar-container {
+								@include media-breakpoint-up($sidebar-expand-breakpoint) {
+									margin-top: 0;
+									top: calc( #{$abh} + #{$chh} );
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	&.header-sticky {
+		@include media-breakpoint-up($breakpoint) {
+			header.complementary-header.d-none.#{$ch_class} {
+				~ header.main-header {
+					margin-top: 0;
+					top: $chh;
+				}
+				~ div.main-body {
+					.sidebar {
+						//.sidebar-container {
+						//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+						//		margin-top: calc( #{$chh} + #{$hh} );
+						//	}
+						//}
+						&.sidebar-sticky {
+							.sidebar-container {
+								@include media-breakpoint-up($sidebar-expand-breakpoint) {
+									margin-top: 0;
+									top: calc( #{$chh} + #{$hh} );
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		&.gpAdmin:not(.override_admin_style):not(.edit_layout) {
+			@include media-breakpoint-up($breakpoint) {
+				header.complementary-header.#{$ch_class} {
+					~ header.main-header {
+						top: calc( #{$abh} + #{$chh} );
+					}
+					~ div.main-body {
+						.sidebar {
+							//.sidebar-container {
+							//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+							//		margin-top: calc( #{$abh} + #{$chh} + #{$hh} );
+							//	}
+							//}
+							&.sidebar-sticky {
+								.sidebar-container {
+									@include media-breakpoint-up($sidebar-expand-breakpoint) {
+										margin-top: 0;
+										top: calc( #{$abh} + #{$chh} + #{$hh} );
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+} // /@mixin display-headers
+
+
+header.main-header,
+header.complementary-header {
+	position: relative;
+}
+
+
+
+html.header-sticky {
+	header.main-header {
+		position: fixed; // IE fallback
+		@supports (position: -webkit-sticky) or (position: sticky) {
+			position: -webkit-sticky;
+			position: sticky;
+		}
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: $zindex-sticky;
+	}
+
+	.sidebar {
+		//.sidebar-container {
+		//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+		//		margin-top: $hh;
+		//	}
+		//}
+		&.sidebar-sticky {
+			.sidebar-container {
+				@include media-breakpoint-up($sidebar-expand-breakpoint) {
+					margin-top: 0;
+					top: $hh;
+				}
+			}
+		}
+	}
+
+	&.gpAdmin:not(.override_admin_style):not(.edit_layout) {
+		header.main-header {
+			top: $abh;
+		}
+ 
+		.sidebar {
+			//.sidebar-container {
+			//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+			//		margin-top: calc( #{$abh} + #{$hh} );
+			//	}
+			//}
+			&.sidebar-sticky {
+				.sidebar-container {
+					@include media-breakpoint-up($sidebar-expand-breakpoint) {
+						top: calc( #{$abh} + #{$hh} );
+					}
+				}
+			}
+		}
+	}
+}
+
+
+html.complementary-header-fixed {
+
+	header.complementary-header {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: $zindex-fixed;
+	}
+
+	//header.main-header {
+	//	margin-top: $chh;
+	//}
+
+	header.complementary-header.d-none {
+		~ header.main-header {
+			margin-top: 0;
+		}
+	}
+
+	.sidebar {
+		//.sidebar-container {
+		//	@include media-breakpoint-up($sidebar-expand-breakpoint) {
+		//		margin-top: $chh;
+		//	}
+		//}
+		&.sidebar-sticky {
+			.sidebar-container {
+				@include media-breakpoint-up($sidebar-expand-breakpoint) {
+					margin-top: 0;
+					top: $chh;
+				}
+			}
+		}
+	}
+
+	@include display-headers(xs);
+	@include display-headers(sm);
+	@include display-headers(md);
+	@include display-headers(lg);
+	@include display-headers(xl);
+}
+
+
+// ### Anchors and fixed main navbar ###
+// prevent targeted anchors hiding behind fixed navbar
+html.header-sticky {
+	.GPAREA {
+		a[name]:not([href]):target,
+		[id]:not(.GPAREA):target {
+			&::before {
+				content: '';
+				display: block;
+				visibility: hidden;
+				padding-top: calc( #{$hh} + #{$chh} + #{$spacer} );
+				margin-top: calc( ( #{$hh} + #{$chh} + #{$spacer} ) * -1 );
+			}
+		}
+	}
+	&.gpAdmin:not(.override_admin_style) {
+		.GPAREA {
+			a[name]:not([href]):target,
+			[id]:not(.GPAREA):target {
+				&::before {
+					padding-top: calc( #{$abh} + #{$hh} + #{$chh} + #{$spacer} );
+					margin-top: calc( ( #{$abh} + #{$hh} + #{$chh} + #{$spacer} ) * -1 );
+				}
+			}
+		}
+	}
+}
+
+
+// colors and borders
+header.complementary-header {
+	color: $complementary_header_color !important;
+	background-color: $complementary_header_bg !important;
+	border-bottom: $complementary_header_border_bottom_width solid $complementary_header_border_bottom_color;
+
+	.complementary-nav {
+		min-height: $complementary_header_height;
+
+		.GPAREA {
+			color: $complementary_header_color;
+
+			&:not(.gpMenu) a:not(.btn) {
+				color: rgba($complementary_header_color, 0.667);
+				&:hover,
+				&:focus{
+					color: $complementary_header_color;
+				}
+			}
+
+			&:only-child {
+				margin-left: auto;
+				margin-right: auto;
+			}
+		}
+	}
+}
+
+header.main-header {
+	color: $header_color;
+	background-color: $header_bg !important; // overrule .bg-dark
+	border-bottom: $header_border_bottom_width solid $header_border_bottom_color;
+
+	nav.main-nav {
+		min-height: $header_height;
+
+		.GPAREA:not(.gpMenu) a:not(.btn) {
+			color: rgba($header_color, 0.667);
+			&:hover,
+			&:focus{
+				color: $header_color;
+			}
+		}
+
+		// multi-level navbar caret rotation
+		@include media-breakpoint-up($navbar_expand_breakpoint) {
+			.dropdown-menu-end .dropdown-toggle.dropdown-active:after { // = caret
+				@include vp-transform(rotate(90deg));
+			}
+		}
+
+		.navbar-brand {
+			color: $header_brand_color;
+			// height: calc( #{$header_height} - ( #{$navbar-padding-y} + #{$navbar-brand-padding-y} ) * 2 );
+			height: calc( #{$header_height} - #{$navbar-padding-y} * 2 );
+			.GPAREA {
+				color: $header_brand_color;
+				a {
+					color: $header_brand_color;
+					&:hover,
+					&:focus {
+						color: $header_brand_color;
+					}
+				}
+			}
+
+			.brand-logo {
+				position: relative;
+				display: block;
+				height: $header_brand_logo_height;
+				width: auto;
+			}
+		}
+	}
+}

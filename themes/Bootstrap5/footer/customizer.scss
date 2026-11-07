@@ -1,0 +1,137 @@
+//
+// Bootstrap 5 - Typesetter CMS theme (migration draft)
+//
+// 'footer' layout
+// process customizer variables
+//
+
+
+// Variable default values
+// Do not change or remove them here
+// Use customizer in Layout Editor instead
+//
+// for theme developers: all non-bootstrap variables
+// need to have defined !default values.
+
+$navbar_expand_breakpoint:					lg !default;
+
+$content_color:								#212529 !default;
+$content_bg:								#ffffff !default;
+$content_link_color:						#1a73e8 !default;
+
+$h1_color:									#212529 !default;
+$h2_color:									#212529 !default;
+$h3_color:									#212529 !default;
+$h4_color:									#212529 !default;
+$h5_color:									#212529 !default;
+$h6_color:									#212529 !default;
+
+$footer_bg:									#e9ecef !default;
+$footer_color:								#212529 !default;
+$footer_headings_color:						#343a40 !default;
+$footer_link_color:							#1a73e8 !default;
+$footer_border_top_width:					1px !default;
+$footer_border_top_color:					rgba(127, 127, 127, 0.25) !default;
+
+
+// css variable defaults
+// we use the html scope here
+// customizer will use the global :root scope
+// which has a higher specificity than html
+html {
+	--navbar_expand_breakpoint:				#{$navbar_expand_breakpoint};
+
+	--content_color:						#{$content_color};
+	--content_bg:							#{$content_bg};
+	--content_link_color:					#{$content_link_color};
+
+	--h1_color:								#{$h1_color};
+	--h2_color:								#{$h2_color};
+	--h3_color:								#{$h3_color};
+	--h4_color:								#{$h4_color};
+	--h5_color:								#{$h5_color};
+	--h6_color:								#{$h6_color};
+
+	--footer_color:							#{$footer_color};
+	--footer_bg:							#{$footer_bg};
+	--footer_headings_color:				#{$footer_headings_color};
+	--footer_link_color:					#{$footer_link_color};
+	--footer_border_top_width:				#{$footer_border_top_width};
+	--footer_border_top_width:				#{$footer_border_top_color};
+}
+
+
+// typography
+@import '../_common/customizer_common_typography.scss';
+
+
+// headers
+@import '../_common/customizer_common_headers.scss';
+
+
+// main menu
+@import '../_common/customizer_common_menu.scss';
+
+
+// search
+@import '../_common/customizer_common_search.scss';
+
+
+// main content
+main.main-content {
+	color: $content_color;
+	background-color: $content_bg;
+
+	a:not(.btn) {
+		color: $content_link_color;
+		&:hover,
+		&:focus {
+			color: darken($content_link_color, 10%);
+		}
+	}
+
+	h1, .h1 { color: $h1_color;	}
+	h2, .h2 { color: $h2_color;	}
+	h3, .h3 { color: $h3_color;	}
+	h4, .h4 { color: $h4_color;	}
+	h5, .h5 { color: $h5_color;	}
+	h6, .h6 { color: $h6_color;	}
+
+
+	[class*="text-"] {
+		h1, .h1,
+		h2, .h2,
+		h3, .h3,
+		h4, .h4,
+		h5, .h5,
+		h6, .h6,
+		.simple_blog_gadget_label {
+			color: inherit;
+		}
+	}
+}
+
+
+// main footer
+footer.main-footer {
+	color: $footer_color !important; // overrule .text-muted
+	background-color: $footer_bg !important; // overrule .bg-light
+	border-top: $footer_border_top_width solid $footer_border_top_color;
+
+	h1, .h1,
+	h2, .h2,
+	h3, .h3,
+	h4, .h4,
+	h5, .h5,
+	h6, .h6,
+	.simple_blog_gadget_label {
+		color: $footer_headings_color;
+	}
+	a:not(.btn) {
+		color: $footer_link_color;
+		&:hover,
+		&:focus {
+			color: darken($footer_link_color, 10%);
+		}
+	}
+}

@@ -235,6 +235,15 @@ p{
 	padding:0;
 	}
 
+
+@font-face {
+  font-display: swap;
+  font-family: 'Courgette';
+  font-style: normal;
+  font-weight: 400;
+  src: url('fonts/courgette-v19-latin-regular.woff2') format('woff2');
+}
+
 .right_content ul li{
 	font-family: Courgette, script;
 	font-size:19px;

@@ -1,0 +1,34 @@
+// Typesetter's built-in search form and -results
+
+.filetype-special_search.search_results {
+	h2 {
+		@extend .h3;
+	}
+	form {
+		max-width: 24rem;
+		margin-bottom: 1rem;
+		input.text {
+			border-top-right-radius: 0;
+			border-bottom-right-radius: 0;
+			border-right: none;
+		}
+		input.submit {
+			border-top-left-radius: 0;
+			border-bottom-left-radius: 0;
+		}
+	}
+	.result_list {
+		margin-bottom: 1.5rem;
+		div {
+			h4 {
+				@extend .h5;
+				margin-bottom: 0.33rem;
+			}
+			margin: 0.75rem 0;
+		}
+	}
+	.pagination .page-link {
+		// needs to overrule additional.css by specificity
+		padding: $pagination-padding-y $pagination-padding-x;
+	}
+}

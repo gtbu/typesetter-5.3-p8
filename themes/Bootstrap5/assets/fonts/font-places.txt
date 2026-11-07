@@ -1,0 +1,5 @@
+the fonts are under Bootstrap4/assets/Fonts 
+
+14 MB in each theme is too big. 
+
+Please confiure the pathes in your new themes.

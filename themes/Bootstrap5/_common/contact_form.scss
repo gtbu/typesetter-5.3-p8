@@ -1,0 +1,50 @@
+// Typesetter's built-in contact form
+
+form.contactform {
+	width: 100%;
+
+	label:not([for="contact_message"]) {
+		width: auto;
+		float: none;
+		clear: both;
+		margin: 0 0 0.6em 0;
+		> span.title {
+			display: block;
+			float: none;
+			width: auto;
+			margin: 0;
+		}
+		&:after {
+			content: "";
+			display: block;
+			clear: both;
+		}
+	}
+	input, textarea {
+		float: none;
+		width: 100%;
+		margin-top: 0.5rem;
+	}
+
+	input.submit.btn {
+		float: none;
+		width: auto;
+		padding: $input-btn-padding-y $input-btn-padding-x;
+	}
+
+	> label[for="contact_message"] {
+		width: auto;
+		float: none;
+		clear: both;
+		margin: 0;
+	}
+
+	> textarea#contact_message {
+		margin-bottom: 0.6em;
+	}
+
+	> .alert {
+		text-align: center;
+		margin-top: 20px;
+	}
+}

@@ -1,0 +1,392 @@
+// Theme Bootstrap 5
+//
+// common stylesheet used in all layouts
+//
+// Instead of Autoprefixer we use vendor-prefix mixins,
+//
+
+// ### Import web fonts ###
+
+// if defined in variables
+@if variable-exists(web-font-path) {
+	@import url($web-font-path);
+}
+
+// ### Other Common Imports ###
+// Note:	Because this file (common_style.scss) is imported itself by the layout's style.scss,
+//				we must also prefix the following paths with '../_common_style/',
+//				even though the files to be imported are right here in this directory
+@import '../_common/contact_form.scss';
+@import '../_common/search.scss';
+@import '../_common/mobile_menu.scss';
+@import '../_common/more_backgrounds.scss';
+@import '../_common/simple_blog_common.scss'; // adds ~40 KB css, comment this line if you're not using the Simple Blog (plugin)
+
+
+// ### Clearfixes and flex ###
+
+// disable Typesetter's native clearfixes in flexbox context
+.row,
+.gpRow,
+[class$="-flex"] {
+	> .gpclear {
+		display: none;
+	}
+	&:after {
+		content: none;
+	}
+}
+
+
+// ### Unify the Grids ###
+
+// convert Typesetter's grid to behave like Bootstrap 4 (flex) grid
+.gpRow		{ @extend .row; }
+.gpCol-1	{ @extend .col-md-1; }
+.gpCol-2	{ @extend .col-md-2; }
+.gpCol-3	{ @extend .col-md-3; }
+.gpCol-4	{ @extend .col-md-4; }
+.gpCol-5	{ @extend .col-md-5; }
+.gpCol-6	{ @extend .col-md-6; }
+.gpCol-7	{ @extend .col-md-7; }
+.gpCol-8	{ @extend .col-md-8; }
+.gpCol-9	{ @extend .col-md-9; }
+.gpCol-10	{ @extend .col-md-10; }
+.gpCol-11	{ @extend .col-md-11; }
+.gpCol-12	{ @extend .col-12; }
+[class *= "gpCol-"] { margin-bottom: unset; }
+
+
+// ### Navbar ###
+.navbar {
+	.fa {
+		font-size: 14px; // this is FontAwesome's pixel-perfect size
+		line-height: inherit;
+	}
+}
+
+// navbar areas and their <a> tags inherit the bootstrap style
+.navbar-light {
+	.GPAREA {
+		color: $navbar-light-color;
+		a:not(.dropdown-item) {
+			color: $navbar-light-color;
+			text-decoration: none;
+			@include hover-focus() {
+				color: $navbar-light-hover-color;
+			}
+			&.disabled {
+				color: $navbar-light-disabled-color;
+			}
+		}
+	}
+	.navbar-brand {
+		> .GPAREA {
+			a
+			a:hover,
+			a:focus {
+				color: $navbar-light-brand-color;
+				text-decoration: none;
+			}
+		}
+	}
+}
+.navbar-dark {
+	.GPAREA {
+		color: $navbar-dark-color;
+		a:not(.dropdown-item) {
+			color: $navbar-dark-color;
+			text-decoration: none;
+			//@include hover-focus() {
+			//	color: $navbar-dark-hover-color;
+			//}
+			&.disabled {
+				color: $navbar-dark-disabled-color;
+			}
+		}
+	}
+	.navbar-brand {
+		> .GPAREA {
+			a,
+			a:hover,
+			a:focus {
+				color: $navbar-dark-brand-color;
+				text-decoration: none;
+			}
+		}
+		// create a gap between multiple GPAREAs
+		.brand-logo + .GPAREA,
+		.GPAREA:not(:empty) + .GPAREA {
+			margin-left: 0.75rem;
+		}
+		.gpArea_Site-Name .editable_area span:empty:before {
+			// in case it was emptied - to remain editable
+			display: inline-block;
+			content: ' ';
+			min-width: 24px;
+			color: rgba(127, 127, 127, 0.75);
+		}
+	}
+}
+
+
+// multi-level navbar caret rotation
+.dropdown-toggle {
+	&.dropdown-active {
+		+ .dropdown-menu {
+			top: 0;
+			left: calc(100% - 4px);
+			min-width: 0;
+		}
+		&:after { // = caret
+			@include vp-transform(rotate(-90deg));
+		}
+	}
+}
+.dropdown-menu-end {
+	.dropdown-toggle {
+		&.dropdown-active {
+			+ .dropdown-menu {
+				left: auto;
+				right: calc(100% - 4px);
+			}
+		}
+	}
+}
+
+
+.complementary-nav {
+	min-height: 46px; // default, will be overruled by customizer
+	> .no-container {
+		width: 100%;
+	}
+}
+
+$navbar_expand_breakpoint: lg !default; // customizer overrules
+
+.main-nav {
+	min-height: 72px; // default, will be overruled by customizer
+	// search gadget
+	.gpArea_Search,
+	.gpArea_Search-Gadget {
+		@include vp-flex-basis(7rem);
+		max-width: 10rem;
+		@include media-breakpoint-up($navbar_expand_breakpoint){
+			margin-left: $spacer;
+		}
+		h3,
+		input.submit {
+			display: none;
+		}
+		input.text {
+			height: auto; // overrules bootstrap defaults
+			padding: 0.15rem 0.5rem; // overrules bootstrap defaults
+			border-radius: $input-border-radius; // overrules bootstrap input-group defaults
+		}
+	}
+}
+
+// fix bad container paddings in navbars (as of Bootstrap 4)
+// see https://github.com/twbs/bootstrap/issues/24726
+@include media-breakpoint-up(sm) {
+	.navbar > .container,
+	.navbar > .container-fluid {
+		padding-right: ($grid-gutter-width / 2);
+		padding-left: ($grid-gutter-width / 2);
+	}
+}
+
+// dropdown-divider in dropdown menus
+.main-nav .gpArea_Extra_Bootstrap_Dropdown_Divider {
+	@extend .dropdown-divider;
+}
+
+// margins for additional areas
+.main-nav .navbar-collapse > .GPAREA:not(:empty) {
+	margin-top: 0.75rem;
+	margin-bottom: 0.25rem;
+}
+
+// expanded
+@include media-breakpoint-up(sm) {
+	.main-nav.navbar-expand-sm .navbar-collapse > .GPAREA:not(:empty) {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+}
+@include media-breakpoint-up(md) {
+	.main-nav.navbar-expand-md .navbar-collapse > .GPAREA:not(:empty) {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+}
+@include media-breakpoint-up(lg) {
+	.main-nav.navbar-expand-lg .navbar-collapse > .GPAREA:not(:empty) {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+}
+
+
+// ### Native smooth scrolling ###
+
+// see https://caniuse.com/#feat=css-scroll-behavior
+//		https://developer.mozilla.org/docs/Web/CSS/scroll-behavior
+//		https://developer.mozilla.org/docs/Web/CSS/@media/prefers-reduced-motion
+html {
+	scroll-behavior: smooth;
+	@media (prefers-reduced-motion) {
+		scroll-behavior: auto;
+	}
+}
+
+
+// ### Complementary Header ###
+header.complementary-header {
+	&.bg-dark {
+		// background-color: darken($dark, 7%) !important;
+		background-color: $gray-900 !important; // Customizer
+	}
+
+	&.bg-light {
+		// background-color: darken($white, 7%) !important;
+		background-color: $gray-100 !important;
+	}
+
+	.gpArea_Extra_Header_Contact > span,
+	.gpArea_Extra_Header_Contact > .GPAREA > span, // when editing
+	.gpArea_Extra_Header_SocialMedia > a,
+	.gpArea_Extra_Header_SocialMedia > .GPAREA > a {
+		display: inline-block;
+		padding: 0 4px;
+
+		&:first-child {
+			padding-left: 0;
+		}
+
+		&:last-child {
+			padding-right: 0;
+		}
+	}
+}
+
+
+// ### Content sections ###
+
+// add some vertical padding and even more padding-top to the 
+// first content section so it doesn't stick to the navbar
+// overrule this e.g. with 'pt-0' utility class
+#gpx_content > .GPAREA {
+	padding-top: ($grid-gutter-width / 4);
+	padding-bottom: ($grid-gutter-width / 4);
+	&:first-child {
+		padding-top: ($grid-gutter-width / 1.5);
+	}
+}
+@include media-breakpoint-up(md) {
+	#gpx_content > .GPAREA {
+		padding-top: ($grid-gutter-width / 3);
+		padding-bottom: ($grid-gutter-width / 3);
+		&:first-child {
+			padding-top: ($grid-gutter-width);
+		}
+	}
+}
+
+// ### container ###
+// working without containers (see layout settings.php)
+.main-nav > .no-container {
+	width: 100%;
+	@include vp-flexbox;
+	@include vp-flex-wrap(wrap);
+	@include vp-align-items(center);
+	@include vp-justify-content(space-between);
+}
+
+.main-content > .no-container {
+	> .GPAREA,
+	> #gpx_content > .GPAREA,
+	> #gpAfterContent > .GPAREA {
+		padding-left: ($grid-gutter-width / 2);
+		padding-right: ($grid-gutter-width / 2);
+	}
+	
+	> #gpx_content > .row,
+	> #gpx_content > .gpRow {
+		padding-left: 0;
+		padding-right: 0;
+		margin-left: 0;
+		margin-right: 0;
+	}
+}
+
+.main-footer > .no-container > .row {
+	margin: 0;
+}
+
+
+// ### Admin Link ###
+
+// no underline
+.sitemap_link,
+.login_link,
+.powered_by_link {
+	// display: inline-block;
+	margin-bottom: $spacer;
+	a {
+		&:hover,
+		&:focus {
+			text-decoration: none;
+		}
+	}
+}
+
+// adjust the gap
+.gpArea_Admin_Link,
+.gpArea_Admin-Link-Area {
+	span + span {
+		margin-left: ($spacer * 0.75);
+	}
+}
+
+
+// ### Layout Editor ###
+
+// give empty 'area slots' a min-width so they are accessible in Layout Editor 
+// even when they are at the very right edge
+html.edit_layout .collapse .GPAREA.gp_output_area {
+	min-width: 124px;
+}
+
+
+
+// ### General Typography ###
+
+.lead {
+	font-size: 1.25em; // make relative: rem -> em
+}
+
+
+// ### Old badge ###
+
+.badge-light {
+  color: #212529;
+  background-color: #f8f9fa;
+}
+
+a.badge-light {
+  color: #212529;
+  text-decoration: none;
+
+  &:hover,
+  &:focus {
+    color: #212529;
+    background-color: #dae0e5;
+  }
+
+  &:focus,
+  &.focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(248, 249, 250, 0.5);
+  }
+}
