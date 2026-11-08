@@ -2,10 +2,10 @@
 $navbar_expand_breakpoint:	lg !default; // can be changed via customizer
 
 $navbar_collapsed_map: (
-	sm: 	xs,
-	md: 	sm,
-	lg:		md,
-	xl:		lg,
+	sm: 	sm,
+	md: 	md,
+	lg:		lg,
+	xl:		xl,
 	never: 	false // this will trigger the media-breakpoint-down mixin fallback to use no @media rule - exactly what we want :)
 );
 
