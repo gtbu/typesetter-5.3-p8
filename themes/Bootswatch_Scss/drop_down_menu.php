@@ -1,5 +1,6 @@
 <?php
 
+$GP_GETALLGADGETS = true;
 
 $GP_MENU_ELEMENTS = 'BootstrapMenu';
 
