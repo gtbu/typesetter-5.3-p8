@@ -108,6 +108,7 @@ class Revisions extends \gp\Page\Edit{
 		// current page
 		// this will overwrite one of the history entries if there is a draft
 		$page_file		= \gp\tool\Files::FilePath($this->file);
+		$file_size        = file_exists($page_file) ? filesize($page_file) : 0;
 		$rows[]			= [
 			'time'	=> $this->fileModTime,
 			'row'	=> $this->HistoryRow($this->fileModTime, filesize($page_file), $this->file_stats['username'], 'current')
