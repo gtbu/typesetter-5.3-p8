@@ -107,27 +107,44 @@ class Revisions extends \gp\Page\Edit{
 
 		// current page
 		// this will overwrite one of the history entries if there is a draft
-		$page_file		= \gp\tool\Files::FilePath($this->file);
-		$file_size        = file_exists($page_file) ? filesize($page_file) : 0;
-		$rows[]			= [
-			'time'	=> $this->fileModTime,
-			'row'	=> $this->HistoryRow($this->fileModTime, filesize($page_file), $this->file_stats['username'], 'current')
-		];
+		// current page
+        $page_file = \gp\tool\Files::FilePath($this->file);
+        $file_size = file_exists($page_file) ? filesize($page_file) : 0;
 
-		usort($rows,function($a,$b){
-			return strnatcmp($b['time'],$a['time']);
-		});
+        $username = isset($this->file_stats['username']) && is_string($this->file_stats['username']) ? $this->file_stats['username'] : '';
 
-		// working draft
-		// always make it the first row
-		if( $this->draft_exists ){
-			$draft_file		= \gp\tool\Files::FilePath($this->draft_file);
-			$size			= filesize($draft_file);
-			$time			= $this->file_stats['modified'];
+        $rows[] = [
+           'time' => $this->fileModTime,
+           'row'  => $this->HistoryRow(
+           $this->fileModTime,
+           $file_size,
+           $username,
+           'current'
+           )
+         ];
 
-			array_unshift($rows,['time'=>$time,'row'=>$this->HistoryRow($time, $size, $this->file_stats['username'], 'draft')]);
-		}
+         usort($rows, function($a, $b){
+         return strnatcmp($b['time'], $a['time']);
+         });
 
+         // working draft
+         if ($this->draft_exists) {
+
+         $draft_file = \gp\tool\Files::FilePath($this->draft_file);
+         $size       = file_exists($draft_file) ? filesize($draft_file) : 0;
+         $time       = $this->file_stats['modified'] ?? $this->fileModTime;
+
+         array_unshift($rows, [
+        'time' => $time,
+        'row'  => $this->HistoryRow(
+            $time,
+            $size,
+            $username,
+            'draft'
+        )
+        ]);
+        }
+		
 
 		// echo '<br/>';
 		echo '<table class="bordered full_width striped hover">';
