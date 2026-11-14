@@ -59,7 +59,7 @@ class CombineCSS
         }
 
         if ($this->minify_output && !class_exists('\\cssmin')) {
-            includeFile('thirdparty/cssmin_v.1.0.php');
+            includeFile('thirdparty/cssmin_v.2.0.php');
 
             if (!class_exists('\\cssmin')) {
                 trigger_error(
