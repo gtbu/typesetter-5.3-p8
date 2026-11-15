@@ -16,6 +16,8 @@ namespace gp\tool{
 	 */
 #[\AllowDynamicProperties]		
 	class Emailer extends \PHPMailer\PHPMailer\PHPMailer{
+		
+		public string $PluginDir = '';
 
 		function __construct(){
 			global $dataDir,$config;
@@ -161,7 +163,7 @@ namespace gp\tool{
 			}
 
 			$from = ini_get('sendmail_from');
-			if( !empty($sendmail_from) ){
+			if( !empty($from) ){
 				return $from;
 			}
 

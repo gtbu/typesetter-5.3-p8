@@ -6,7 +6,6 @@ defined('is_running') or die('Not an entry point...');
 
 includeFile('thirdparty/JShrink/autoload.php');
 
-#[\AllowDynamicProperties]
 class Combine{
 
 
@@ -604,6 +603,7 @@ class Combine{
 	private $modified			= 0;
 	private $content_len		= 0;
 	private $had_imports		= false;
+	private bool $had_imported  = false;
 	private $import_data		= [];
 
 
