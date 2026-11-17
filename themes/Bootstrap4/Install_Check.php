@@ -48,12 +48,13 @@ function Install_Check(){
 	//Header Social Media
 	if( !\gp\admin\Content\Extra::AreaExists('Header_SocialMedia') ){
 		$file		= $dataDir . '/data/_extra/Header_SocialMedia/page.php';
-		$content	= '<a title="Twitter" class="fa fa-twitter" target="blank" href="https://twitter.com">&zwnj;</a>
-		<a title="facebook" class="fa fa-facebook" target="blank" href="https://www.facebook.com">&zwnj;</a>
-		<a title="Instagram" class="fa fa-instagram" target="blank" href="https://www.instagram.com">&zwnj;</a>
-		<a title="LinkedIn" class="fa fa-linkedin-square" target="blank" href="https://www.linkedin.com">&zwnj;</a>
-		<a title="YouTube" class="fa fa-youtube" target="blank" href="https://www.youtube.com">&zwnj;</a>
-		<a title="Skype" class="fa fa-skype" target="blank" href="https://www.skype.com">&zwnj;</a>';
+		$content	= '<a title="Twitter" class="bi bi-twitter-x" target="_blank"   href="https://x.com">&zwnj;</a>
+        <a title="Facebook" class="bi bi-facebook" target="_blank" href="https://www.facebook.com">&zwnj;</a>
+        <a title="Instagram" class="bi bi-instagram" target="_blank" href="https://www.instagram.com">&zwnj;</a>
+        <a title="LinkedIn" class="bi bi-linkedin" target="_blank" href="https://www.linkedin.com">&zwnj;</a>
+        <a title="YouTube" class="bi bi-youtube" target="_blank" href="https://www.youtube.com">&zwnj;</a>
+        <a title="Skype" class="bi bi-skype" target="_blank" href="https://www.skype.com">&zwnj;</a>';
+
 		if( \gp\install\Tools::NewExtra($file, $content) ){
 			msg('<i class="fa fa-check"></i> The new Extra Content <em>Header SocialMedia</em> was created.');
 		}else{

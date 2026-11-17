@@ -48,8 +48,8 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 				<nav class="complementary-nav navbar navbar-dark">
 					<div class="no-container d-flex justify-content-between">
 						<?php 
-							gpOutput::Get('Extra', 'Header_Contact');
-							gpOutput::Get('Extra', 'Header_SocialMedia');
+							gpOutput::Get('Extra', 'Header_Contact5');
+							gpOutput::Get('Extra', 'Header_SocialMedia5');
 							// you can use Layout Editor to rearrange, remove or add areas
 						?>
 					</div>
