@@ -414,19 +414,14 @@ class Available extends \gp\admin\Layout{
 			  $template_file = $this->FindTemplateFile($theme_info);
 
               if ($template_file === false) {
-              msg('FEHLER: No template.php found for: '
+              msg('Error: No template.php found for: '
               . htmlspecialchars($theme_info['folder'] . '/' . $theme_info['color']));
               } else {
-              $found = $this->RegisterTemplateExtras($template_file);
-
-              msg('Template-File: ' . htmlspecialchars($template_file));
-              msg('Found Extra-Areas: '. htmlspecialchars(implode(', ', $found)));
+              $found = $this->RegisterTemplateExtras($template_file, $theme_info);
+              msg(' Template-File: ' . htmlspecialchars($template_file));
+              msg(' Found Extra-Areas: ' . htmlspecialchars(implode(', ', $found)));
               }
-
-              /* $found = $this->RegisterTemplateExtras($template_file);
-              msg('Template-File: ' . htmlspecialchars($template_file));
-              msg('Found Extra-Areas: ' . htmlspecialchars(implode(', ', $found))); */
-			
+              
 			  msg('== Theme registration ==');
 			  $this->AddLayout($theme_info);
 				break;
@@ -733,14 +728,22 @@ class Available extends \gp\admin\Layout{
     * Liest alle gpOutput::Get('Extra', '...') Aufrufe aus einer template.php aus
     * und legt fehlende Extra-Areas automatisch an.
     */
-    public function RegisterTemplateExtras(string $template_file): array {
+    
+	public function RegisterTemplateExtras(
+    string $template_file,
+    array $theme_info
+): array {
     global $dataDir;
+
     $found_extras = [];
-	
+
+    $theme_name = $theme_info['name'] ?? ($theme_info['folder'] ?? 'Unknown theme');
+    $theme_color = $theme_info['color'] ?? 'default';
+
     msg('1. Template-Path: ' . htmlspecialchars($template_file));
 
     if (!file_exists($template_file)) {
-        msg('FEHLER: template.php not found.');
+        msg('Error: template.php not found.');
         return $found_extras;
     }
 
@@ -751,7 +754,7 @@ class Available extends \gp\admin\Layout{
     $pattern = '/gpOutput::Get\s*\(\s*[\'"]Extra[\'"]\s*,\s*[\'"]([^\'"]+)[\'"]\s*\)/i';
 
     if (!preg_match_all($pattern, $template_code, $matches)) {
-        msg('FEHLER: Kein gpOutput::Get(\'Extra\', ...) ii Template found.');
+        msg('Notice: No gpOutput::Get(\'Extra\', ...) in Template found.');
         return $found_extras;
     }
 
@@ -767,7 +770,17 @@ class Available extends \gp\admin\Layout{
         }
 
         $file = $dataDir . '/data/_extra/' . $area_name . '/page.php';
-        $content = '<p>Extra-Area: ' . htmlspecialchars($area_name) . '-' . '</p>';
+
+        /* $content = '<p>Extra-Area: ' . htmlspecialchars($area_name) . ' / '
+            . htmlspecialchars($theme_name) . ' / ' . htmlspecialchars($theme_color) . '</p>'; */
+			
+		$content = '<p>Extra-Area: '
+          . htmlspecialchars(implode(' / ', [
+          $area_name,
+          $theme_name,
+          $theme_color,
+          ]))
+          . '</p>';	
 
         $result = \gp\install\Tools::NewExtra($file, $content);
 
@@ -778,14 +791,18 @@ class Available extends \gp\admin\Layout{
             msg('Target path: ' . htmlspecialchars($file));
         }
     }
-        return $found_extras;
+
+    return $found_extras;
     }
+	
+	
+	
        
     public function FindTemplateFile(array $theme_info)
     {
     $color_dir = $theme_info['full_dir'] . '/' . $theme_info['color'];
-    $theme_dir = $theme_info['full_dir'];
-    $theme_name = $theme_info['name'];
+    $theme_dir = rtrim($theme_info['full_dir'], '/\\') ?? '';
+    $theme_name = $theme_info['name'] ?? $theme_info['folder'];
 	 
     $candidates = [
         $color_dir . '/template.php',
