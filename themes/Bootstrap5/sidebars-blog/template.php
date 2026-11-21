@@ -176,7 +176,7 @@ include_once($page->theme_dir . '/' . $page->theme_color . '/functions.php');
 				<aside class="sidebar sidebar-right<?php echo $sidebar_right_class; ?>">
 					<div class="sidebar-container">
 						<?php
-							gpOutput::Get('Extra', 'Side_Menu');
+							gpOutput::Get('Extra', 'Side_Menu5');
 
 							// Simple Blog Gadgets, if installed
 						if( gpOutput::GadgetExists('Simple_Blog') ){

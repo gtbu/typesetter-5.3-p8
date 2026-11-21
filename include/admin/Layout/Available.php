@@ -747,7 +747,7 @@ class Available extends \gp\admin\Layout{
         return $found_extras;
     }
 
-    msg('2. template.php found.');
+    /* msg('2. template.php found.'); */
 
     $template_code = file_get_contents($template_file);
 
@@ -760,7 +760,7 @@ class Available extends \gp\admin\Layout{
 
     $found_extras = array_unique($matches[1]);
 
-    msg('3. Found: ' . htmlspecialchars(implode(', ', $found_extras)));
+    msg('2. Found: ' . htmlspecialchars(implode(', ', $found_extras)));
 
     foreach ($found_extras as $area_name) {
 
