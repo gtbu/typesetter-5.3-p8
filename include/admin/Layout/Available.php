@@ -418,8 +418,8 @@ class Available extends \gp\admin\Layout{
               . htmlspecialchars($theme_info['folder'] . '/' . $theme_info['color']));
               } else {
               $found = $this->RegisterTemplateExtras($template_file, $theme_info);
-              msg(' Template-File: ' . htmlspecialchars($template_file));
-              msg(' Found Extra-Areas: ' . htmlspecialchars(implode(', ', $found)));
+              /* msg(' Template-File: ' . htmlspecialchars($template_file)); */
+              msg('3. Installed Extra-Areas: ' . htmlspecialchars(implode(', ', $found))); 
               }
               
 			  msg('== Theme registration ==');
@@ -740,8 +740,8 @@ class Available extends \gp\admin\Layout{
     $theme_name = $theme_info['name'] ?? ($theme_info['folder'] ?? 'Unknown theme');
     $theme_color = $theme_info['color'] ?? 'default';
 
-    msg('1. Template-Path: ' . htmlspecialchars($template_file));
-
+    /* msg('1. Template-Path: ' . htmlspecialchars($template_file)); */
+    msg('1. Theme-Path: ' . htmlspecialchars($theme_info['folder'] . '/' . $theme_info['color']));
     if (!file_exists($template_file)) {
         msg('Error: template.php not found.');
         return $found_extras;
@@ -760,7 +760,7 @@ class Available extends \gp\admin\Layout{
 
     $found_extras = array_unique($matches[1]);
 
-    msg('2. Found: ' . htmlspecialchars(implode(', ', $found_extras)));
+    msg('2. Found Extras: ' . htmlspecialchars(implode(', ', $found_extras)));
 
     foreach ($found_extras as $area_name) {
 
